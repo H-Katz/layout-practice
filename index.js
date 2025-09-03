@@ -3,7 +3,23 @@ fetch('./N03-21_44_210101.geojson')
     if (!response.ok) throw new Error('Network response was not ok');
     return response.json();
   })
-  .then(geojson => {
+  .then(async (geojson) => {
+    let cityOfficeLocations = await (await fetch('./r0612puboffice_utf8.csv')).text();
+    cityOfficeLocations = cityOfficeLocations.split("\n");
+
+    console.log((cityOfficeLocations[0]))
+    cityOfficeLocations = cityOfficeLocations.map((cityOffice)=>{
+      return cityOffice.split("\t");
+    })
+    console.log((cityOfficeLocations[0]))
+
+    cityOfficeLocations = cityOfficeLocations.filter((cityOffice)=>{
+      // return cityOffice[1] == "大分県"
+      return cityOffice[0].startsWith("44") && cityOffice[0].length > 4
+    })
+    console.log((cityOfficeLocations))
+    const  cityOffice = cityOfficeLocations[Math.floor(Math.random()*cityOfficeLocations.length)];
+
     const feature = geojson.features[0];
     console.log(feature)
     // 1. ここで処理を書く
@@ -52,6 +68,12 @@ fetch('./N03-21_44_210101.geojson')
     let profile = "M10 10 L60 80 L120 20 L180 90 Z"
     profile = pieces.join(" ") + " Z"
     document.getElementById('output').setAttribute("d", profile);
+
+    //let cx = cityOffice[9];
+    //let cy = cityOffice[8];
+    let [cx, cy] = toSvgCoord([cityOffice[9]-0, cityOffice[8]-0]);
+    document.getElementById("profile").children[0].setAttribute("cx", cx);
+    document.getElementById("profile").children[0].setAttribute("cy", cy);
 
   })
   .catch(error => {
