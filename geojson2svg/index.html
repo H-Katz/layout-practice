@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoJSON to SVG Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #dbeafe 0%, #ffffff 50%, #f0fdfa 100%);
+            min-height: 100vh;
+            color: #1f2937;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid #e5e7eb;
+            padding: 1.5rem 0;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 3rem;
+            height: 3rem;
+            background: #dbeafe;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 2rem;
+            height: 2rem;
+            color: #2563eb;
+        }
+
+        .logo-text {
+            font-size: 1.875rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .arrow-icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            color: #9ca3af;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #6b7280;
+            margin-top: 1rem;
+            max-width: 32rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Main Content */
+        .main {
+            padding: 3rem 0;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        /* Drop Zone */
+        .drop-zone {
+            max-width: 32rem;
+            margin: 0 auto;
+            border: 2px dashed #d1d5db;
+            border-radius: 0.75rem;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .drop-zone:hover {
+            border-color: #9ca3af;
+        }
+
+        .drop-zone.drag-active {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            transform: scale(1.02);
+        }
+
+        .drop-zone.loading {
+            border-color: #14b8a6;
+            background-color: #f0fdfa;
+        }
+
+        .drop-zone.error {
+            border-color: #ef4444;
+            background-color: #fef2f2;
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .drop-zone-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .upload-icon {
+            width: 4rem;
+            height: 4rem;
+            color: #9ca3af;
+            transition: color 0.3s ease;
+        }
+
+        .drag-active .upload-icon {
+            color: #3b82f6;
+        }
+
+        .loading-spinner {
+            width: 4rem;
+            height: 4rem;
+            border: 4px solid #d1fae5;
+            border-top: 4px solid #14b8a6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-icon {
+            width: 4rem;
+            height: 4rem;
+            color: #ef4444;
+        }
+
+        .drop-zone-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .drop-zone-subtitle {
+            color: #6b7280;
+            margin-bottom: 1rem;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .error-message {
+            color: #dc2626;
+            font-weight: 500;
+        }
+
+        /* SVG Preview */
+        .preview-container {
+            max-width: 72rem;
+            margin: 0 auto;
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .preview-header {
+            background: linear-gradient(135deg, #2563eb 0%, #14b8a6 100%);
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .preview-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .preview-controls {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.8);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ef4444;
+        }
+
+        .preview-area {
+            background: #f9fafb;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 24rem;
+            overflow: auto;
+        }
+
+        .svg-container {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            max-width: 100%;
+            max-height: 100%;
+            overflow: auto;
+        }
+
+        .preview-info {
+            padding: 1rem 1.5rem;
+            background: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .success-indicator {
+            color: #059669;
+            font-weight: 500;
+        }
+
+        /* Features Section */
+        .features {
+            margin-top: 4rem;
+        }
+
+        .features-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .features-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+
+        .features-subtitle {
+            color: #6b7280;
+            max-width: 32rem;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #f3f4f6;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .feature-card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .feature-icon.blue {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .feature-icon.teal {
+            background: #d1fae5;
+            color: #14b8a6;
+        }
+
+        .feature-icon.orange {
+            background: #fed7aa;
+            color: #ea580c;
+        }
+
+        .feature-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-description {
+            color: #6b7280;
+        }
+
+        /* Footer */
+        .footer {
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 5rem;
+            padding: 2rem 0;
+        }
+
+        .footer-content {
+            text-align: center;
+            color: #6b7280;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .logo-text {
+                font-size: 1.5rem;
+            }
+
+            .drop-zone {
+                padding: 2rem;
+            }
+
+            .preview-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .preview-controls {
+                justify-content: center;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Hidden class */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                    </div>
+                    <h1 class="logo-text">GeoJSON</h1>
+                </div>
+                
+                <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14m-7-7 7 7-7 7"/>
+                </svg>
+                
+                <div class="logo-section">
+                    <div class="logo-icon" style="background: #d1fae5;">
+                        <svg viewBox="0 0 24 24" fill="currentColor" style="color: #14b8a6;">
+                            <path d="M3 3h18v18H3V3zm16 16V5H5v14h14z"/>
+                            <path d="M7 7h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2zM7 11h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2zM7 15h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2z"/>
+                        </svg>
+                    </div>
+                    <h1 class="logo-text">SVG</h1>
+                </div>
+            </div>
+            
+            <p class="subtitle">
+                GeoJSONファイルを美しいSVGベクター形式に変換します。ドラッグアンドドロップで簡単操作。
+            </p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Upload Section -->
+            <section class="section" id="upload-section">
+                <div class="drop-zone" id="drop-zone">
+                    <input type="file" id="file-input" accept=".geojson,.json">
+                    <div class="drop-zone-content" id="drop-zone-content">
+                        <!-- Content will be dynamically updated -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Preview Section -->
+            <section class="section hidden" id="preview-section">
+                <div class="preview-container">
+                    <div class="preview-header">
+                        <h2 class="preview-title">SVGプレビュー</h2>
+                        <div class="preview-controls">
+                            <button class="btn btn-secondary" id="download-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7,10 12,15 17,10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                ダウンロード
+                            </button>
+                            <button class="btn btn-danger" id="clear-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                    <path d="M3 3v5h5"/>
+                                </svg>
+                                リセット
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-area" id="preview-area">
+                        <!-- SVG content will be inserted here -->
+                    </div>
+                    
+                    <div class="preview-info">
+                        <span>変換が完了しました</span>
+                        <span class="success-indicator">✓ SVG生成成功</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Features Section -->
+            <section class="features" id="features-section">
+                <div class="features-header">
+                    <h2 class="features-title">主な機能</h2>
+                    <p class="features-subtitle">
+                        プロフェッショナルなGeoJSONからSVGへの変換ツール
+                    </p>
+                </div>
+
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon blue">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7,10 12,15 17,10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">簡単アップロード</h3>
+                        <p class="feature-description">
+                            ドラッグアンドドロップまたはクリックでGeoJSONファイルを簡単にアップロード
+                        </p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon teal">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">リアルタイムプレビュー</h3>
+                        <p class="feature-description">
+                            変換されたSVGをリアルタイムでプレビュー表示、高品質な出力
+                        </p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon orange">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14,2 14,8 20,8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <polyline points="10,9 9,9 8,9"/>
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">高品質ダウンロード</h3>
+                        <p class="feature-description">
+                            ベクター形式のSVGファイルを高品質でダウンロード可能
+                        </p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <p>&copy; 2025 GeoJSON to SVG Converter. Modern web application for geographic data conversion.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // GeoJSON to SVG Converter Class
+        class GeoJSONToSVGConverter {
+            constructor(width = 800, height = 600, padding = 40) {
+                this.width = width;
+                this.height = height;
+                this.padding = padding;
+            }
+
+            convert(geoJSON) {
+                const features = this.normalizeFeatures(geoJSON);
+                const bounds = this.calculateBounds(features);
+                const paths = features.map(feature => this.featureToPath(feature, bounds));
+                
+                return this.generateSVG(paths);
+            }
+
+            normalizeFeatures(geoJSON) {
+                if (geoJSON.type === 'FeatureCollection') {
+                    return geoJSON.features;
+                }
+                return [geoJSON];
+            }
+
+            calculateBounds(features) {
+                let minLng = Infinity;
+                let maxLng = -Infinity;
+                let minLat = Infinity;
+                let maxLat = -Infinity;
+
+                features.forEach(feature => {
+                    this.extractCoordinates(feature.geometry.coordinates).forEach(([lng, lat]) => {
+                        minLng = Math.min(minLng, lng);
+                        maxLng = Math.max(maxLng, lng);
+                        minLat = Math.min(minLat, lat);
+                        maxLat = Math.max(maxLat, lat);
+                    });
+                });
+
+                return { minLng, maxLng, minLat, maxLat };
+            }
+
+            extractCoordinates(coords) {
+                const result = [];
+                
+                const flatten = (arr) => {
+                    if (Array.isArray(arr) && arr.length === 2 && typeof arr[0] === 'number' && typeof arr[1] === 'number') {
+                        result.push(arr);
+                    } else if (Array.isArray(arr)) {
+                        arr.forEach(item => flatten(item));
+                    }
+                };
+
+                flatten(coords);
+                return result;
+            }
+
+            projectCoordinate(lng, lat, bounds) {
+                const x = ((lng - bounds.minLng) / (bounds.maxLng - bounds.minLng)) * (this.width - 2 * this.padding) + this.padding;
+                const y = ((bounds.maxLat - lat) / (bounds.maxLat - bounds.minLat)) * (this.height - 2 * this.padding) + this.padding;
+                return [x, y];
+            }
+
+            featureToPath(feature, bounds) {
+                const { geometry } = feature;
+                
+                switch (geometry.type) {
+                    case 'Point':
+                        return this.pointToPath(geometry.coordinates, bounds);
+                    case 'LineString':
+                        return this.lineStringToPath(geometry.coordinates, bounds);
+                    case 'Polygon':
+                        return this.polygonToPath(geometry.coordinates, bounds);
+                    case 'MultiPoint':
+                        return geometry.coordinates.map(coords => 
+                            this.pointToPath(coords, bounds)
+                        ).join(' ');
+                    case 'MultiLineString':
+                        return geometry.coordinates.map(coords => 
+                            this.lineStringToPath(coords, bounds)
+                        ).join(' ');
+                    case 'MultiPolygon':
+                        return geometry.coordinates.map(coords => 
+                            this.polygonToPath(coords, bounds)
+                        ).join(' ');
+                    default:
+                        return '';
+                }
+            }
+
+            pointToPath(coordinates, bounds) {
+                const [x, y] = this.projectCoordinate(coordinates[0], coordinates[1], bounds);
+                return `<circle cx="${x}" cy="${y}" r="3" fill="#3B82F6" stroke="#1E40AF" stroke-width="1"/>`;
+            }
+
+            lineStringToPath(coordinates, bounds) {
+                const points = coordinates.map(coord => {
+                    const [x, y] = this.projectCoordinate(coord[0], coord[1], bounds);
+                    return `${x},${y}`;
+                }).join(' ');
+                
+                return `<polyline points="${points}" fill="none" stroke="#14B8A6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+            }
+
+            polygonToPath(coordinates, bounds) {
+                const rings = coordinates.map(ring => {
+                    const points = ring.map(coord => {
+                        const [x, y] = this.projectCoordinate(coord[0], coord[1], bounds);
+                        return `${x},${y}`;
+                    }).join(' ');
+                    return `<polygon points="${points}" fill="rgba(59, 130, 246, 0.3)" stroke="#3B82F6" stroke-width="1.5"/>`;
+                });
+                
+                return rings.join('');
+            }
+
+            generateSVG(paths) {
+                return `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${this.width}" height="${this.height}" viewBox="0 0 ${this.width} ${this.height}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .geo-feature { transition: opacity 0.2s ease; }
+      .geo-feature:hover { opacity: 0.8; }
+    </style>
+  </defs>
+  <rect width="100%" height="100%" fill="#F8FAFC"/>
+  <g class="geo-features">
+    ${paths.join('\n    ')}
+  </g>
+</svg>`;
+            }
+        }
+
+        // Application State
+        let currentGeoJSON = null;
+        let currentSVG = null;
+
+        // DOM Elements
+        const dropZone = document.getElementById('drop-zone');
+        const dropZoneContent = document.getElementById('drop-zone-content');
+        const fileInput = document.getElementById('file-input');
+        const uploadSection = document.getElementById('upload-section');
+        const previewSection = document.getElementById('preview-section');
+        const featuresSection = document.getElementById('features-section');
+        const previewArea = document.getElementById('preview-area');
+        const downloadBtn = document.getElementById('download-btn');
+        const clearBtn = document.getElementById('clear-btn');
+
+        // Utility Functions
+        function validateGeoJSON(data) {
+            if (!data || typeof data !== 'object') return false;
+            
+            if (data.type === 'FeatureCollection') {
+                return Array.isArray(data.features) && 
+                       data.features.every(feature => 
+                           feature.type === 'Feature' && 
+                           feature.geometry && 
+                           feature.geometry.type && 
+                           feature.geometry.coordinates
+                       );
+            }
+            
+            if (data.type === 'Feature') {
+                return data.geometry && 
+                       data.geometry.type && 
+                       data.geometry.coordinates;
+            }
+            
+            return false;
+        }
+
+        function updateDropZoneContent(state, message = '') {
+            let content = '';
+            
+            switch (state) {
+                case 'default':
+                    content = `
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7,10 12,15 17,10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        <div>
+                            <p class="drop-zone-title">GeoJSONファイルをドロップ</p>
+                            <p class="drop-zone-subtitle">または クリックしてファイルを選択</p>
+                            <div class="file-info">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14,2 14,8 20,8"/>
+                                </svg>
+                                <span>対応形式: .geojson, .json</span>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 'drag-active':
+                    content = `
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7,10 12,15 17,10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        <p class="drop-zone-title">ファイルをドロップしてください</p>
+                    `;
+                    break;
+                case 'loading':
+                    content = `
+                        <div class="loading-spinner"></div>
+                        <p class="drop-zone-title">ファイルを処理中...</p>
+                    `;
+                    break;
+                case 'error':
+                    content = `
+                        <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/>
+                            <line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                        <div>
+                            <p class="drop-zone-title">エラーが発生しました</p>
+                            <p class="error-message">${message}</p>
+                            <p class="drop-zone-subtitle">別のファイルを選択してください</p>
+                        </div>
+                    `;
+                    break;
+            }
+            
+            dropZoneContent.innerHTML = content;
+        }
+
+        function processFile(file) {
+            if (!file.name.toLowerCase().endsWith('.geojson') && !file.name.toLowerCase().endsWith('.json')) {
+                showError('GeoJSONファイル（.geojson または .json）を選択してください');
+                return;
+            }
+
+            showLoading();
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const text = e.target.result;
+                    const data = JSON.parse(text);
+                    
+                    if (!validateGeoJSON(data)) {
+                        showError('有効なGeoJSONフォーマットではありません');
+                        return;
+                    }
+
+                    currentGeoJSON = data;
+                    convertToSVG(data);
+                } catch (err) {
+                    showError('ファイルの解析に失敗しました');
+                }
+            };
+
+            reader.onerror = () => {
+                showError('ファイルの読み込みに失敗しました');
+            };
+
+            reader.readAsText(file);
+        }
+
+        function convertToSVG(geoJSON) {
+            try {
+                const converter = new GeoJSONToSVGConverter(800, 600, 40);
+                const svg = converter.convert(geoJSON);
+                currentSVG = svg;
+                showPreview(svg);
+            } catch (err) {
+                console.error('SVG変換エラー:', err);
+                showError('SVGの変換に失敗しました');
+            }
+        }
+
+        function showDefault() {
+            dropZone.className = 'drop-zone';
+            updateDropZoneContent('default');
+        }
+
+        function showDragActive() {
+            dropZone.className = 'drop-zone drag-active';
+            updateDropZoneContent('drag-active');
+        }
+
+        function showLoading() {
+            dropZone.className = 'drop-zone loading';
+            updateDropZoneContent('loading');
+        }
+
+        function showError(message) {
+            dropZone.className = 'drop-zone error';
+            updateDropZoneContent('error', message);
+        }
+
+        function showPreview(svgContent) {
+            uploadSection.classList.add('hidden');
+            featuresSection.classList.add('hidden');
+            previewSection.classList.remove('hidden');
+            
+            const svgContainer = document.createElement('div');
+            svgContainer.className = 'svg-container';
+            svgContainer.innerHTML = svgContent;
+            
+            previewArea.innerHTML = '';
+            previewArea.appendChild(svgContainer);
+        }
+
+        function clearAll() {
+            currentGeoJSON = null;
+            currentSVG = null;
+            
+            uploadSection.classList.remove('hidden');
+            featuresSection.classList.remove('hidden');
+            previewSection.classList.add('hidden');
+            
+            showDefault();
+            fileInput.value = '';
+        }
+
+        function downloadSVG() {
+            if (!currentSVG) return;
+
+            const blob = new Blob([currentSVG], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'converted-map.svg';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // Event Listeners
+        dropZone.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!dropZone.classList.contains('loading')) {
+                showDragActive();
+            }
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!dropZone.classList.contains('loading') && !dropZone.contains(e.relatedTarget)) {
+                showDefault();
+            }
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        });
+
+        downloadBtn.addEventListener('click', downloadSVG);
+        clearBtn.addEventListener('click', clearAll);
+
+        // Initialize
+        showDefault();
+    </script>
+</body>
+</html>
