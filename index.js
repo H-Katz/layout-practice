@@ -95,7 +95,7 @@ var controller = {
       evt.preventDefault();
       const i = Math.floor(Math.random()*cityOfficeLocations.length);
       controller.updateLocation(i);
-      document.forms.$cities.oita.value = cityOfficeLocations[i][0];
+      //document.forms.$cities.oita.value = cityOfficeLocations[i][0];
     },
     updateLocation: (i)=>{
       const  cityOffice = cityOfficeLocations[i];
@@ -119,9 +119,5 @@ var pickCity = (evt)=>{
 var toggle = (evt)=>{
   const checked = document.forms.$cities.toggleList.checked;
   const toggleNode = document.querySelector("ul:has(input[name='oita'])");
-  if(checked){
-    toggleNode.classList.remove("filter");
-  }else{
-    toggleNode.classList.add("filter");
-  }
+  toggleNode.classList.toggle("filter", !checked);
 }
