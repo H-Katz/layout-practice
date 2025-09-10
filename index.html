@@ -33,6 +33,11 @@
       background: #f5f5f5;
       padding: 1em;
     }
+    /*
+    .filter li:has(input[name="oita"]:not(:checked)) {
+      display: none;
+    }
+    */
   </style>
 </head>
 <body>
@@ -73,12 +78,42 @@
         </svg>
       </article>
       
-      <!--
+
       <aside>
+        <form name="$cities">
+        
         <h2>操作メニュー</h2>
-        <button onclick="controller.nextLocation(event)">次</button>
+        <!-- <button>次</button>
+        <button onclick="controller.nextLocation(event)">次</button><br> -->
+        <!-- <label><input type="checkbox" name="toggleList" onclick="toggle(event)">自治体一覧表示/非表示</label> -->
+
+        <!--
+        <h2>自治体</h2>
+        <ul class="filter">
+          <li><input type="radio" name="oita" value="44000" onchange="pickCity(event)">大分県</li>
+          <li><label><input type="radio" name="oita" value="44000" onchange="pickCity(event)">大分県</label></li>
+          <li><label><input type="radio" name="oita" value="44201" onchange="pickCity(event)">大分市</label></li>
+          <li><label><input type="radio" name="oita" value="44202" onchange="pickCity(event)">別府市</label></li>
+          <li><label><input type="radio" name="oita" value="44203" onchange="pickCity(event)">中津市</label></li>
+          <li><label><input type="radio" name="oita" value="44204" onchange="pickCity(event)">日田市</label></li>
+          <li><label><input type="radio" name="oita" value="44205" onchange="pickCity(event)">佐伯市</label></li>
+          <li><label><input type="radio" name="oita" value="44206" onchange="pickCity(event)">臼杵市</label></li>
+          <li><label><input type="radio" name="oita" value="44207" onchange="pickCity(event)">津久見市</label></li>
+          <li><label><input type="radio" name="oita" value="44208" onchange="pickCity(event)">竹田市</label></li>
+          <li><label><input type="radio" name="oita" value="44209" onchange="pickCity(event)">豊後高田市</label></li>
+          <li><label><input type="radio" name="oita" value="44210" onchange="pickCity(event)">杵築市</label></li>
+          <li><label><input type="radio" name="oita" value="44211" onchange="pickCity(event)">宇佐市</label></li>
+          <li><label><input type="radio" name="oita" value="44212" onchange="pickCity(event)">豊後大野市</label></li>
+          <li><label><input type="radio" name="oita" value="44213" onchange="pickCity(event)">由布市</label></li>
+          <li><label><input type="radio" name="oita" value="44214" onchange="pickCity(event)">国東市</label></li>
+          <li><label><input type="radio" name="oita" value="44322" onchange="pickCity(event)">姫島村</label></li>
+          <li><label><input type="radio" name="oita" value="44341" onchange="pickCity(event)">日出町</label></li>
+          <li><label><input type="radio" name="oita" value="44461" onchange="pickCity(event)">九重町</label></li>
+          <li><label><input type="radio" name="oita" value="44462" onchange="pickCity(event)">玖珠町</label></li>
+        </ul>
+        -->
+        </form>
       </aside>
-      -->
       
       <aside>
         <h2>サイドメニュー</h2>

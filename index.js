@@ -92,12 +92,36 @@ fetch('./r0612puboffice_utf8.csv')
 
 var controller = {
     nextLocation: (evt)=>{
-      const  cityOffice = cityOfficeLocations[Math.floor(Math.random()*cityOfficeLocations.length)];
+      evt.preventDefault();
+      const i = Math.floor(Math.random()*cityOfficeLocations.length);
+      controller.updateLocation(i);
+      document.forms.$cities.oita.value = cityOfficeLocations[i][0];
+    },
+    updateLocation: (i)=>{
+      const  cityOffice = cityOfficeLocations[i];
       let lng = cityOffice[9] - 0;
       let lat = cityOffice[8] - 0;
       let [cx, cy] = svg.toCanvasCoordFromPoint([lng, lat]);
-      document.getElementById("profile").children[0].setAttribute("cx", cx);
-      document.getElementById("profile").children[0].setAttribute("cy", cy);
-  
+      const circle = svg.root.querySelector("circle");
+      circle.setAttribute("cx", cx);
+      circle.setAttribute("cy", cy); 
     }
+}
+
+var pickCity = (evt)=>{
+  const key = document.forms.$cities.oita.value;
+  const i = cityOfficeLocations.findIndex((city)=>city[0] == key);
+  if(i > -1){
+    controller.updateLocation(i);
+  }
+}
+
+var toggle = (evt)=>{
+  const checked = document.forms.$cities.toggleList.checked;
+  const toggleNode = document.querySelector("ul:has(input[name='oita'])");
+  if(checked){
+    toggleNode.classList.remove("filter");
+  }else{
+    toggleNode.classList.add("filter");
+  }
 }
