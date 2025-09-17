@@ -70,6 +70,7 @@ var svg = new SVGCanvas("profile");
 svg.load("./N03-21_44_210101.geojson")
 
 var cityOfficeLocations = null;
+var cities = null;
 
 fetch('./r0612puboffice_utf8.csv')
   .then(response => response.text())
@@ -88,6 +89,14 @@ fetch('./r0612puboffice_utf8.csv')
       return cityOffice[0].startsWith("44") && cityOffice[0].length > 4
     })
     console.log((cityOfficeLocations))
+
+    /*
+    cities = cityOfficeLocations.reduce((cityList, city)=>{
+      let value = city[0]; 
+      let name = city[1];
+      cityList[value] = name;
+      return cityList;
+    }, {})*/
   })
 
 var controller = {
@@ -121,3 +130,46 @@ var toggle = (evt)=>{
   const toggleNode = document.querySelector("ul:has(input[name='oita'])");
   toggleNode.classList.toggle("filter", !checked);
 }
+
+// 大分県の18自治体データ
+cities = {"44000": "大分県",
+  "44201": "大分市", 
+  "44202": "別府市", 
+  "44203": "中津市", 
+  "44204": "日田市", 
+  "44205": "佐伯市",
+  "44206": "臼杵市", 
+  "44207": "津久見市", 
+  "44208": "竹田市", 
+  "44209": "豊後高田市", 
+  "44210": "杵築市",
+  "44211": "宇佐市", 
+  "44212": "豊後大野市", 
+  "44213": "由布市", 
+  "44214": "国東市",
+  "44322": "姫島村", 
+  "44341": "日出町", 
+  "44461": "九重町", 
+  "44462": "玖珠町"
+};
+/* 
+// 配列からリストを生成 ... 1対1の時は ... ?
+const list = Object.entries(cities).map(([value, name])=>{
+  const li = document.createElement("li");
+  li.innerHTML = '<label><input type="radio" name="oita" value="'+value+'" onchange="pickCity(event)">'+name+'</label>'
+  return li;
+});
+
+// 配列をある一つの要素にするには...? 集約機能だからreduce を使う
+const ul = document.createElement('ul');
+ul.classList.add("filter");
+list.reduce((root, li)=>{
+	root.append(li);
+	return root;
+}, ul);
+
+// ulを加える。どこに？ <h2>自治体</h2>の弟ノードにしたい
+let base = document.querySelector("aside h2:last-child");
+base.parentNode.appendChild(ul);
+
+*/
