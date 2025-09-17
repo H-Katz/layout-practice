@@ -88,8 +88,9 @@
         <label><input type="checkbox" name="toggleList" onclick="toggle(event)">自治体一覧表示/非表示</label> 
         
         <h2>自治体</h2>
+        <!--
         <ul class="filter">
-          <!-- <li><input type="radio" name="oita" value="44000" onchange="pickCity(event)">大分県</li> -->
+          <li><input type="radio" name="oita" value="44000" onchange="pickCity(event)">大分県</li> 
           <li><label><input type="radio" name="oita" value="44000" onchange="pickCity(event)">大分県</label></li>
           <li><label><input type="radio" name="oita" value="44201" onchange="pickCity(event)">大分市</label></li>
           <li><label><input type="radio" name="oita" value="44202" onchange="pickCity(event)">別府市</label></li>
@@ -109,7 +110,7 @@
           <li><label><input type="radio" name="oita" value="44341" onchange="pickCity(event)">日出町</label></li>
           <li><label><input type="radio" name="oita" value="44461" onchange="pickCity(event)">九重町</label></li>
           <li><label><input type="radio" name="oita" value="44462" onchange="pickCity(event)">玖珠町</label></li>
-        </ul>
+        </ul> -->
         
         </form>
       </aside>
@@ -123,5 +124,9 @@
     <footer>フッター（常に下に表示）</footer>
 
     <script src="index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>
+      eruda.init();
+    </script>
   </body>
 </html>
