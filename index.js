@@ -1,3 +1,16 @@
+Array.prototype.group_by = function(f){
+  return this.reduce((acc, val)=>{
+    const key = f(val);
+    if(acc[key] == null){
+      acc[key] = [val]
+    }else{
+      acc[key].push(val);
+    }
+    return acc;
+  }, {})
+}
+
+
 class SVGCanvas {
   constructor(id) {
     this.id = id;
@@ -80,83 +93,108 @@ class SVGCanvas {
   }
 }
 
-var controller = {
-  nextLocation: (evt) => {
-    evt.preventDefault();
-    const i = Math.floor(Math.random() * selectedCities.length);
-    controller.updateLocation(i);
-    document.forms.$cities.oita.value = selectedCities[i][0];
-  },
-  updateLocation: (i) => {
-    const cityOffice = selectedCities[i];
-    let lng = cityOffice[9] - 0;
-    let lat = cityOffice[8] - 0;
-    let [cx, cy] = svg.toCanvasCoordFromPoint([lng, lat]);
-    const circle = svg.root.querySelector("circle");
-    circle.setAttribute("cx", cx);
-    circle.setAttribute("cy", cy);
-  },
-};
-
-var pickCity = (evt) => {
-  const key = document.forms.$cities.oita.value;
-  const i = selectedCities.findIndex((city) => city[0] == key);
-  if (i > -1) {
-    controller.updateLocation(i);
+// データ管理クラス
+class Repository {
+  constructor() {
+    this.cityOfficeLocations = null;
+    this.boundaries = null;
+    this.isLoaded = false;
   }
-};
 
-var toggle = (evt) => {
-  const checked = document.forms.$cities.toggleList.checked;
-  const toggleNode = document.querySelector("ul:has(input[name='oita'])");
-  toggleNode.classList.toggle("filter", !checked);
-};
+  // データを読み込む
+  async loadData() {
+    if (this.isLoaded) return;
+    
+    try {
+      // 庁舎データの読み込み
+      const response1 = await fetch("./r0612puboffice_utf8.csv");
+      const text = await response1.text();
+      
+      let locations = text.split("\n");
+      locations = locations.map((cityOffice) => cityOffice.split("\t"));
+      
+      locations.forEach((city) => {
+        if(city[0].length < 5) {
+          city[0] = "0" + city[0];
+        }
+      });
+      
+      this.cityOfficeLocations = locations;
 
-Array.prototype.group_by = function(eval){
-  return this.reduce((acc, val)=>{
-    const key = eval(val);
-    if(acc[key] == null){
-      acc[key] = [val]
-    }else{
-      acc[key].push(val);
+      // 境界データの読み込み
+      const response2 = await fetch("./data/N03-21_210101.json");
+      this.boundaries = await response2.json();
+      
+      this.isLoaded = true;
+      console.log("データの読み込みが完了しました");
+    } catch (error) {
+      console.error("データの読み込みに失敗しました:", error);
     }
-    return acc;
-  }, {})
+  }
+
+  // 同期的に庁舎データを取得
+  getCityOfficeLocations() {
+    if (!this.isLoaded) {
+      throw new Error("データがまだ読み込まれていません。loadData()を先に呼び出してください。");
+    }
+    return this.cityOfficeLocations;
+  }
+
+  // 同期的に境界データを取得
+  getBoundaries() {
+    if (!this.isLoaded) {
+      throw new Error("データがまだ読み込まれていません。loadData()を先に呼び出してください。");
+    }
+    return this.boundaries;
+  }
 }
+
+var controller = null
 
 var svg = new SVGCanvas("profile");
 svg.load("./N03-21_44_210101.geojson");
-var cityOfficeLocations = null;
 var selectedCities = null;
 
+// グローバルデータマネージャー
+const repository = new Repository();
+
+// データの初期化
 (async () => {
-  cityOfficeLocations = await fetch("./r0612puboffice_utf8.csv")
-    .then((response) => response.text())
-    .then((text) => {
-      cityOfficeLocations = text;
-      cityOfficeLocations = cityOfficeLocations.split("\n");
+  // データマネージャーでデータを読み込む
+  await repository.loadData();
+  // 同期的にデータを取得
+  let cityOfficeLocations = repository.getCityOfficeLocations();
+  selectedCities = cityOfficeLocations;
 
-      console.log(cityOfficeLocations[0]);
-      cityOfficeLocations = cityOfficeLocations.map((cityOffice) => {
-        return cityOffice.split("\t");
-      });
-      console.log(cityOfficeLocations[0]);
-
-      /*
-      cityOfficeLocations = cityOfficeLocations.filter((cityOffice) => {
-        // return cityOffice[1] == "大分県"
-        return cityOffice[0].startsWith("44") && cityOffice[0].length > 4;
-      });
-      console.log(cityOfficeLocations);
-      */
-      cityOfficeLocations.forEach((city)=>{
-        if(city[0].length < 5)
-          city[0] = "0" + city[0];
-      })
-      selectedCities = cityOfficeLocations;
-
-      return cityOfficeLocations;
-    });
+  controller = {
+    nextLocation: (evt) => {
+      evt.preventDefault();
+      const i = Math.floor(Math.random() * selectedCities.length);
+      controller.updateLocation(i);
+    },
+    updateLocation: (i) => {
+      const cityOffice = selectedCities[i];
+      let lng = cityOffice[9] - 0;
+      let lat = cityOffice[8] - 0;
+      let [cx, cy] = svg.toCanvasCoordFromPoint([lng, lat]);
+      const circle = svg.root.querySelector("circle");
+      circle.setAttribute("cx", cx);
+      circle.setAttribute("cy", cy);
+      document.forms.$cities.oita.value = selectedCities[i][0];
+    },
+    pickCity: (evt) => {
+      const key = document.forms.$cities.oita.value;
+      const i = selectedCities.findIndex((city) => city[0] == key);
+      if (i > -1) {
+        controller.updateLocation(i);
+      }
+    },
+    toggle: (evt) => {
+      const checked = document.forms.$cities.toggleList.checked;
+      const toggleNode = document.querySelector("ul:has(input[name='oita'])");
+      toggleNode.classList.toggle("filter", !checked);
+    }
+  };
 
   /* 
 // 大分県の18自治体データ
@@ -195,7 +233,7 @@ cities = {"44000": "大分県",
     li.innerHTML =
       '<label><input type="radio" name="oita" value="' +
       value +
-      '" onchange="pickCity(event)">' +
+      '" onchange="controller.pickCity(event)">' +
       name +      
       "</label>";
     return li;
@@ -212,16 +250,14 @@ cities = {"44000": "大分県",
   // ulを加える。どこに？ <h2>自治体</h2>の弟ノードにしたい
   let base = document.querySelector("aside h2:last-child");
   base.parentNode.appendChild(ul);
-})();
 
-(async () => {
-  const boundaries = await (await fetch("./data/N03-21_210101.json")).json()
+  const boundaries = repository.getBoundaries();
   let prefectureNames = boundaries.features.map((feature) => feature.properties["N03_001"]);
   console.log("自治体の境界の数", prefectureNames.length)
   prefectureNames = [...new Set(prefectureNames)]; // 手っ取り早く重複を削除
   console.log("都道府県のリスト", prefectureNames);
 
-  const list = prefectureNames.map((value) => {
+  const list2 = prefectureNames.map((value) => {
     const option = document.createElement("option");
     option.textContent = value;
     return option;
@@ -229,7 +265,7 @@ cities = {"44000": "大分県",
 
   const select = document.querySelector("select[name='prefecture']");
   select.innerHTML = ""; // 初期化
-  list.reduce((root, option) => {
+  list2.reduce((root, option) => {
     root.appendChild(option);
     return root;
   }, select);
@@ -266,7 +302,7 @@ cities = {"44000": "大分県",
     // 3. この自治体コード配列の要素それぞれについて、庁舎データを参照し緯度経度データを取得する
     let cities = features.map((feature)=>{
       const cityCode = feature.properties["N03_007"];
-      const cityOfficeLocation = groupedCities[cityCode][0]
+      const cityOfficeLocation = groupedCities[cityCode] ? groupedCities[cityCode][0] : null;
       return cityOfficeLocation;
     })
     console.log(cities)
@@ -280,7 +316,7 @@ cities = {"44000": "大分県",
     li.innerHTML =
       '<label><input type="radio" name="oita" value="' +
       value +
-      '" onchange="pickCity(event)">' +
+      '" onchange="controller.pickCity(event)">' +
       name +      
       "</label>";
     return li;

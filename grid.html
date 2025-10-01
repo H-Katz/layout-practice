@@ -5,6 +5,8 @@
     <title>grid layout</title>
     <link rel="stylesheet" href="assets/css/base.css" />
     <link rel="stylesheet" href="assets/css/grid.css" />
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script>
   </head>
   <body>
     <header>
@@ -14,14 +16,35 @@
         <nav>アウトラインメニュー</nav>
         <article>
             コンテンツ領域
+            <!-- path例 追加 -->
+            <svg id="profile" width="400" height="400" style="border:1px solid #ccc;">
+                <circle cx="100" cy="100" r="10" fill="green" stroke-width="3"/>
+                <path id="output" fill="none" stroke="black" stroke-width="2" />
+            </svg>
         </article>
         <aside>
-            操作メニュー
+            <form name="$cities">
+        
+                <h2>操作メニュー</h2>
+                <button type="button" onclick="controller.nextLocation(event)">次</button><br> 
+                <label><input type="checkbox" name="toggleList" onclick="controller.toggle(event)">自治体一覧表示/非表示</label> 
+                
+                <h2>都道府県</h2>
+                <select name="prefecture">
+                  <option value="">都道府県を選択してください</option>
+                  <option value="44">大分県</option>
+                  <option value="45">宮崎県</option>
+                  <option value="46">鹿児島県</option>
+                  <option value="47">沖縄県</option>
+                </select>
+        
+                <h2>自治体</h2>
+            </form>
         </aside>
     </main>
     <footer>
         <p>ドキュメントフッタ</p>    
     </footer>
-    <script src="olivine.js" type="module"></script>
+    <script src="index.js"></script>
   </body>
 </html>
