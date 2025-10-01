@@ -1,15 +1,14 @@
-Array.prototype.group_by = function(f){
-  return this.reduce((acc, val)=>{
+Array.prototype.group_by = function (f) {
+  return this.reduce((acc, val) => {
     const key = f(val);
-    if(acc[key] == null){
-      acc[key] = [val]
-    }else{
+    if (acc[key] == null) {
+      acc[key] = [val];
+    } else {
       acc[key].push(val);
     }
     return acc;
-  }, {})
-}
-
+  }, {});
+};
 
 class SVGCanvas {
   constructor(id) {
@@ -43,7 +42,7 @@ class SVGCanvas {
         pathNode.setAttribute("d", profile);
       });
   }
-  resize(points){
+  resize(points) {
     const lons = points.map((point) => point[0]);
     const lats = points.map((point) => point[1]);
     this.minLon = this.min(lons);
@@ -54,7 +53,7 @@ class SVGCanvas {
     const aspect = (this.maxLat - this.minLat) / (this.maxLon - this.minLon);
     this.width = this.root.getAttribute("width") - 0;
     this.height = aspect * this.width;
-    this.root.setAttribute("height", Math.round(this.height));  
+    this.root.setAttribute("height", Math.round(this.height));
   }
   min(ary) {
     return ary.reduce((a, b) => Math.min(a, b));
@@ -104,27 +103,27 @@ class Repository {
   // データを読み込む
   async loadData() {
     if (this.isLoaded) return;
-    
+
     try {
       // 庁舎データの読み込み
       const response1 = await fetch("./r0612puboffice_utf8.csv");
       const text = await response1.text();
-      
+
       let locations = text.split("\n");
       locations = locations.map((cityOffice) => cityOffice.split("\t"));
-      
+
       locations.forEach((city) => {
-        if(city[0].length < 5) {
+        if (city[0].length < 5) {
           city[0] = "0" + city[0];
         }
       });
-      
+
       this.cityOfficeLocations = locations;
 
       // 境界データの読み込み
       const response2 = await fetch("./data/N03-21_210101.json");
       this.boundaries = await response2.json();
-      
+
       this.isLoaded = true;
       console.log("データの読み込みが完了しました");
     } catch (error) {
@@ -135,7 +134,9 @@ class Repository {
   // 同期的に庁舎データを取得
   getCityOfficeLocations() {
     if (!this.isLoaded) {
-      throw new Error("データがまだ読み込まれていません。loadData()を先に呼び出してください。");
+      throw new Error(
+        "データがまだ読み込まれていません。loadData()を先に呼び出してください。"
+      );
     }
     return this.cityOfficeLocations;
   }
@@ -143,13 +144,15 @@ class Repository {
   // 同期的に境界データを取得
   getBoundaries() {
     if (!this.isLoaded) {
-      throw new Error("データがまだ読み込まれていません。loadData()を先に呼び出してください。");
+      throw new Error(
+        "データがまだ読み込まれていません。loadData()を先に呼び出してください。"
+      );
     }
     return this.boundaries;
   }
 }
 
-var controller = null
+var controller = null;
 
 var svg = new SVGCanvas("profile");
 svg.load("./N03-21_44_210101.geojson");
@@ -169,22 +172,98 @@ const repository = new Repository();
   controller = {
     nextLocation: (evt) => {
       evt.preventDefault();
-      const i = Math.floor(Math.random() * selectedCities.length);
+      const i = Math.floor(Math.random() * cityOfficeLocations.length);
       controller.updateLocation(i);
     },
     updateLocation: (i) => {
-      const cityOffice = selectedCities[i];
+      const cityOffice = cityOfficeLocations[i];
       let lng = cityOffice[9] - 0;
       let lat = cityOffice[8] - 0;
+
+      let cityCode = cityOffice[0];
+      let city = repository.boundaries.features.find(
+        (feature) => feature.properties["N03_007"] == cityCode
+      );
+      if (city != null) {
+        let prefectureName = city.properties["N03_001"];
+        let geometries = repository.boundaries.features.group_by((feature) => {
+          return feature.properties["N03_001"];
+        });
+        let features = geometries[prefectureName];
+        let polylines = features
+          .map((feature) => {
+            if (feature.geometry.type == "Polygon") {
+              return feature.geometry.coordinates;
+            } else if (feature.geometry.type == "MultiPolygon") {
+              return feature.geometry.coordinates[0];
+            }
+          })
+          .flat(1); // 最後にポリライン集合として平坦化する
+
+        const points = polylines.flat(1); // 一旦、ポリライン集合を点集合に変換し、描画サイズを調整
+        svg.resize(points);
+
+        // ポリラインを描画座標に変換した後、svgに描画
+        const profile = svg
+          .toCanvasCoordFromPolylines(polylines)
+          .map((polyline) => svg.toPath(polyline))
+          .join(" ");
+        const pathNode = svg.root.querySelector("path");
+        pathNode.setAttribute("d", profile);
+
+        // feature.properties["N03_007"]が自治体コード
+        const groupedCities = cityOfficeLocations.group_by(
+          (location) => location[0]
+        );
+
+        // 3. この自治体コード配列の要素それぞれについて、庁舎データを参照し緯度経度データを取得する
+        let cities = features.map((feature) => {
+          const cityCode = feature.properties["N03_007"];
+          const cityOfficeLocation = groupedCities[cityCode]
+            ? groupedCities[cityCode][0]
+            : null;
+          return cityOfficeLocation;
+        });
+        // 配列からリストを生成 ... 1対1の時は ... ?
+        const list = cities.map((city) => {
+          let value = city[0];
+          let name = city[1];
+          const li = document.createElement("li");
+          li.innerHTML =
+            '<label><input type="radio" name="oita" value="' +
+            value +
+            '" onchange="controller.pickCity(event)">' +
+            name +
+            "</label>";
+          return li;
+        });
+
+        // 配列をある一つの要素にするには...? 集約機能だからreduce を使う
+        const ul = document.createElement("ul");
+        ul.classList.add("filter");
+        list.reduce((root, li) => {
+          root.append(li);
+          return root;
+        }, ul);
+
+        // ulを加える。どこに？ <h2>自治体</h2>の弟ノードにしたい
+
+        let base = document.querySelector("aside h2:last-of-type");
+        if (base.nextElementSibling != null)
+          base.parentNode.removeChild(base.nextElementSibling);
+        base.parentNode.appendChild(ul);
+        document.forms.$cities.prefecture.value = prefectureName;
+      }
+
       let [cx, cy] = svg.toCanvasCoordFromPoint([lng, lat]);
       const circle = svg.root.querySelector("circle");
       circle.setAttribute("cx", cx);
       circle.setAttribute("cy", cy);
-      document.forms.$cities.oita.value = selectedCities[i][0];
+      document.forms.$cities.oita.value = cityOffice[0];
     },
     pickCity: (evt) => {
       const key = document.forms.$cities.oita.value;
-      const i = selectedCities.findIndex((city) => city[0] == key);
+      const i = cityOfficeLocations.findIndex((city) => city[0] == key);
       if (i > -1) {
         controller.updateLocation(i);
       }
@@ -193,7 +272,7 @@ const repository = new Repository();
       const checked = document.forms.$cities.toggleList.checked;
       const toggleNode = document.querySelector("ul:has(input[name='oita'])");
       toggleNode.classList.toggle("filter", !checked);
-    }
+    },
   };
 
   /* 
@@ -234,7 +313,7 @@ cities = {"44000": "大分県",
       '<label><input type="radio" name="oita" value="' +
       value +
       '" onchange="controller.pickCity(event)">' +
-      name +      
+      name +
       "</label>";
     return li;
   });
@@ -252,8 +331,10 @@ cities = {"44000": "大分県",
   base.parentNode.appendChild(ul);
 
   const boundaries = repository.getBoundaries();
-  let prefectureNames = boundaries.features.map((feature) => feature.properties["N03_001"]);
-  console.log("自治体の境界の数", prefectureNames.length)
+  let prefectureNames = boundaries.features.map(
+    (feature) => feature.properties["N03_001"]
+  );
+  console.log("自治体の境界の数", prefectureNames.length);
   prefectureNames = [...new Set(prefectureNames)]; // 手っ取り早く重複を削除
   console.log("都道府県のリスト", prefectureNames);
 
@@ -274,69 +355,80 @@ cities = {"44000": "大分県",
     const value = evt.target.value;
     // alert(value);
     // 1. 選択した都道府県に含まれる幾何データを取得
-    const geometries = boundaries.features.filter((feature) => feature.properties["N03_001"] == value).map((feature)=>feature.geometry);
+    const geometries = boundaries.features
+      .filter((feature) => feature.properties["N03_001"] == value)
+      .map((feature) => feature.geometry);
 
     // 幾何データをポリラインに変換
     // ポリゴンの場合は、ポリラインを1つしか持っていない
     // マルチポリゴンの場合は、ポリラインを複数持っている
-    const polylines= geometries.map((geometry=>{
-      if(geometry.type == "Polygon"){
-        return geometry.coordinates;
-      }else if(geometry.type == "MultiPolygon"){
-        return geometry.coordinates[0];
-      }
-    })).flat(1) // 最後にポリライン集合として平坦化する
+    const polylines = geometries
+      .map((geometry) => {
+        if (geometry.type == "Polygon") {
+          return geometry.coordinates;
+        } else if (geometry.type == "MultiPolygon") {
+          return geometry.coordinates[0];
+        }
+      })
+      .flat(1); // 最後にポリライン集合として平坦化する
 
     const points = polylines.flat(1); // 一旦、ポリライン集合を点集合に変換し、描画サイズを調整
     svg.resize(points);
     // ポリラインを描画座標に変換した後、svgに描画
-    const profile = svg.toCanvasCoordFromPolylines(polylines).map((polyline)=>svg.toPath(polyline)).join(" ");
+    const profile = svg
+      .toCanvasCoordFromPolylines(polylines)
+      .map((polyline) => svg.toPath(polyline))
+      .join(" ");
     const pathNode = svg.root.querySelector("path");
     pathNode.setAttribute("d", profile);
 
     // 2. 選択した都道府県の自治体コードたちN03_007の配列を作る
-    const features = boundaries.features.filter((feature)=>feature.properties["N03_001"] == value);
+    const features = boundaries.features.filter(
+      (feature) => feature.properties["N03_001"] == value
+    );
     // feature.properties["N03_007"]が自治体コード
-    const groupedCities = cityOfficeLocations.group_by((location)=>location[0]);
+    const groupedCities = cityOfficeLocations.group_by(
+      (location) => location[0]
+    );
 
     // 3. この自治体コード配列の要素それぞれについて、庁舎データを参照し緯度経度データを取得する
-    let cities = features.map((feature)=>{
+    let cities = features.map((feature) => {
       const cityCode = feature.properties["N03_007"];
-      const cityOfficeLocation = groupedCities[cityCode] ? groupedCities[cityCode][0] : null;
+      const cityOfficeLocation = groupedCities[cityCode]
+        ? groupedCities[cityCode][0]
+        : null;
       return cityOfficeLocation;
-    })
-    console.log(cities)
+    });
+    console.log(cities);
     selectedCities = cities;
 
-  // 配列からリストを生成 ... 1対1の時は ... ?
-  const list = cities.map((city) => {
-    let value = city[0];
-    let name = city[1];
-    const li = document.createElement("li");
-    li.innerHTML =
-      '<label><input type="radio" name="oita" value="' +
-      value +
-      '" onchange="controller.pickCity(event)">' +
-      name +      
-      "</label>";
-    return li;
-  });
+    // 配列からリストを生成 ... 1対1の時は ... ?
+    const list = cities.map((city) => {
+      let value = city[0];
+      let name = city[1];
+      const li = document.createElement("li");
+      li.innerHTML =
+        '<label><input type="radio" name="oita" value="' +
+        value +
+        '" onchange="controller.pickCity(event)">' +
+        name +
+        "</label>";
+      return li;
+    });
 
-  // 配列をある一つの要素にするには...? 集約機能だからreduce を使う
-  const ul = document.createElement("ul");
-  ul.classList.add("filter");
-  list.reduce((root, li) => {
-    root.append(li);
-    return root;
-  }, ul);
+    // 配列をある一つの要素にするには...? 集約機能だからreduce を使う
+    const ul = document.createElement("ul");
+    ul.classList.add("filter");
+    list.reduce((root, li) => {
+      root.append(li);
+      return root;
+    }, ul);
 
     // ulを加える。どこに？ <h2>自治体</h2>の弟ノードにしたい
-    
+
     let base = document.querySelector("aside h2:last-of-type");
-    if(base.nextElementSibling != null)
+    if (base.nextElementSibling != null)
       base.parentNode.removeChild(base.nextElementSibling);
     base.parentNode.appendChild(ul);
-
   });
-
 })();
