@@ -92,12 +92,103 @@ class SVGCanvas {
   }
 }
 
+class Driver {
+  read(path) {
+    throw new Error("read() must be implemented");
+  }
+  write(path, data) {
+    throw new Error("write() must be implemented");
+  }
+}
+
+class HttpDriver extends Driver {
+  constructor(url, parser) {
+    super();
+    this.url = url;
+    this.parser = parser || ((text) => JSON.parse(text));
+    this.cache = null; // lazy-load用
+  }
+
+  async read(path) {
+    if (this.cache) return this.cache; // キャッシュ済みなら返す
+    const res = await fetch(this.url);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch ${this.url}: ${res.status}`);
+    }
+    const text = await res.text();
+    this.cache = this.parser(text);
+    return this.cache;
+  }
+
+  async write(path, data) {
+    // ブラウザからは普通は書き込めない
+    throw new Error("HttpDriver is read-only in browser");
+  }
+}
+
+class DerivedDriver extends Driver {
+  constructor(repo, depPath, transform) {
+    super();
+    this.repo = repo;
+    this.depPath = depPath;
+    this.transform = transform; // 関数: baseData -> derivedData
+  }
+
+  async read(path) {
+    const baseData = this.repo.read(this.depPath);
+    return this.transform(baseData);
+  }
+
+  async write(path, data) {
+    throw new Error("Derived data is read-only");
+  }
+}
+
 // データ管理クラス
 class Repository {
   constructor() {
     this.cityOfficeLocations = null;
     this.boundaries = null;
     this.isLoaded = false;
+    this.mounts = new Map(); // path -> driver
+    this.cache = new Map(); // セッション内キャッシュ
+  }  
+  mount(path, driver) {
+    this.mounts.set(path, driver);
+  }
+
+  async read(path) {
+    if (this.cache.has(path))
+      return this.cache.get(path); // メモ化ヒット
+    
+    const [basePath, queryString] = path.split("?");
+    const driver = this._findDriver(basePath);
+    let result = await driver.read(basePath);
+
+    if (queryString) {
+      const query = queryString.split("&").reduce((acc, q)=>{
+        const [key, value] = q.split("=");
+        q[key] = value;
+        return q;
+      })
+      if (query["format"] === "text")
+        result = JSON.stringify(result);
+      // 他の形式も拡張可能
+    }
+    this.cache.set(path, result); // メモ化
+    return result;
+  }
+
+  async write(path, data) {
+    const driver = this._findDriver(path);
+    return await driver.write(path, data);
+  }
+
+  _findDriver(path) {
+    if (this.mounts.has(path)) {
+      return this.mounts.get(path);
+    }
+    throw new Error(`No driver mounted at ${path}`);
   }
 
   // データを読み込む
@@ -163,10 +254,23 @@ const repository = new Repository();
 
 // データの初期化
 (async () => {
-  // データマネージャーでデータを読み込む
-  await repository.loadData();
+  // リポジトリにデータを読み込む
+  repository.mount("/cityOfficeLocations", new HttpDriver("./r0612puboffice_utf8.csv", (text)=>{
+    let locations = text.split("\n");
+    locations = locations.map((cityOffice) => cityOffice.split("\t"));
+    locations.forEach((city) => {
+      if (city[0].length < 5)
+        city[0] = "0" + city[0];       
+    });
+    return locations;
+  }));
+  repository.mount("/boundaries", new HttpDriver("./data/N03-21_210101.json"));
+  // await repository.loadData();
+
   // 同期的にデータを取得
-  let cityOfficeLocations = repository.getCityOfficeLocations();
+  let cityOfficeLocations = await repository.read("/cityOfficeLocations");
+  let boundaries = await repository.read("/boundaries");
+  //repository.getCityOfficeLocations();
   selectedCities = cityOfficeLocations;
 
   controller = {
@@ -181,24 +285,25 @@ const repository = new Repository();
       let lat = cityOffice[8] - 0;
 
       let cityCode = cityOffice[0];
-      let city = repository.boundaries.features.find(
+      let city = boundaries.features.find(
         (feature) => feature.properties["N03_007"] == cityCode
       );
       if (city != null) {
         let prefectureName = city.properties["N03_001"];
-        let geometries = repository.boundaries.features.group_by((feature) => {
+        // 1. 選択した自治体を含む都道府県全体の幾何データを取得
+        let indexedBoundaries= boundaries.features.group_by((feature) => {
           return feature.properties["N03_001"];
         });
-        let features = geometries[prefectureName];
+        let features = indexedBoundaries[prefectureName];
         let polylines = features
           .map((feature) => {
             if (feature.geometry.type == "Polygon") {
-              return feature.geometry.coordinates;
+              return [feature.geometry.coordinates];
             } else if (feature.geometry.type == "MultiPolygon") {
-              return feature.geometry.coordinates[0];
+              return feature.geometry.coordinates;
             }
           })
-          .flat(1); // 最後にポリライン集合として平坦化する
+          .flat(2); // 最後にポリライン集合として平坦化する
 
         const points = polylines.flat(1); // 一旦、ポリライン集合を点集合に変換し、描画サイズを調整
         svg.resize(points);
@@ -221,7 +326,7 @@ const repository = new Repository();
           const cityCode = feature.properties["N03_007"];
           const cityOfficeLocation = groupedCities[cityCode]
             ? groupedCities[cityCode][0]
-            : null;
+            : [cityCode, "庁舎なし"];
           return cityOfficeLocation;
         });
         // 配列からリストを生成 ... 1対1の時は ... ?
@@ -330,7 +435,8 @@ cities = {"44000": "大分県",
   let base = document.querySelector("aside h2:last-child");
   base.parentNode.appendChild(ul);
 
-  const boundaries = repository.getBoundaries();
+  boundaries = await repository.read("/boundaries")//
+  // .getBoundaries();
   let prefectureNames = boundaries.features.map(
     (feature) => feature.properties["N03_001"]
   );
@@ -365,12 +471,12 @@ cities = {"44000": "大分県",
     const polylines = geometries
       .map((geometry) => {
         if (geometry.type == "Polygon") {
-          return geometry.coordinates;
+          return [geometry.coordinates];
         } else if (geometry.type == "MultiPolygon") {
-          return geometry.coordinates[0];
+          return geometry.coordinates;
         }
       })
-      .flat(1); // 最後にポリライン集合として平坦化する
+      .flat(2); // 最後にポリライン集合として平坦化する
 
     const points = polylines.flat(1); // 一旦、ポリライン集合を点集合に変換し、描画サイズを調整
     svg.resize(points);
@@ -396,7 +502,7 @@ cities = {"44000": "大分県",
       const cityCode = feature.properties["N03_007"];
       const cityOfficeLocation = groupedCities[cityCode]
         ? groupedCities[cityCode][0]
-        : null;
+        : [cityCode, "庁舎なし"];
       return cityOfficeLocation;
     });
     console.log(cities);
