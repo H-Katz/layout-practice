@@ -7,9 +7,28 @@
     <link rel="stylesheet" href="assets/css/grid.css" />
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
     <script>eruda.init();</script>
+    <style>
+      body {
+        color: #C3CCBC;
+        background-color: #486A83;
+      }
+      article {
+        background-color: #D3CCBC;
+        border: 4px solid #BFA179;
+      }
+
+      aside h2 {
+        padding: 0.4em 0.8em;
+        color: black;
+        background-color: #D3CCBC;
+        z-index: 0;
+        clip-path: polygon(4% 50%, 4% 12%, 88% 12%, 80% 50%, 88% 88%, 4% 88%); 
+        /* clip-path: polygon(6% 50%, 12% 12%, 88% 12%, 94% 50%, 88% 88%, 12% 88%);*/
+      }
+    </style>
   </head>
   <body>
-    <header>
+    <header style="background-color: #486A83">
         <p>ドキュメントヘッダ</p>
     </header>
     <main class="grid-layout">
