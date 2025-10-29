@@ -191,56 +191,6 @@ class Repository {
     throw new Error(`No driver mounted at ${path}`);
   }
 
-  // データを読み込む
-  async loadData() {
-    if (this.isLoaded) return;
-
-    try {
-      // 庁舎データの読み込み
-      const response1 = await fetch("./r0612puboffice_utf8.csv");
-      const text = await response1.text();
-
-      let locations = text.split("\n");
-      locations = locations.map((cityOffice) => cityOffice.split("\t"));
-
-      locations.forEach((city) => {
-        if (city[0].length < 5) {
-          city[0] = "0" + city[0];
-        }
-      });
-
-      this.cityOfficeLocations = locations;
-
-      // 境界データの読み込み
-      const response2 = await fetch("./data/N03-21_210101.json");
-      this.boundaries = await response2.json();
-
-      this.isLoaded = true;
-      console.log("データの読み込みが完了しました");
-    } catch (error) {
-      console.error("データの読み込みに失敗しました:", error);
-    }
-  }
-
-  // 同期的に庁舎データを取得
-  getCityOfficeLocations() {
-    if (!this.isLoaded) {
-      throw new Error(
-        "データがまだ読み込まれていません。loadData()を先に呼び出してください。"
-      );
-    }
-    return this.cityOfficeLocations;
-  }
-
-  // 同期的に境界データを取得
-  getBoundaries() {
-    if (!this.isLoaded) {
-      throw new Error(
-        "データがまだ読み込まれていません。loadData()を先に呼び出してください。"
-      );
-    }
-    return this.boundaries;
-  }
 }
 
 var controller = null;
@@ -249,9 +199,25 @@ var svg = new SVGCanvas("profile");
 svg.load("./N03-21_44_210101.geojson");
 var selectedCities = null;
 
+var aProblem = {
+  question : "問題文",
+  answers: [
+    "クリック",
+    "閉じる",
+    "正解",
+    "不正解"
+  ],
+  correctAnswer : 2
+}
+
+document.problem.question.value = aProblem.question;
+document.problem.answer1.value = aProblem.answers[0];
+document.problem.answer2.value = aProblem.answers[1];
+document.problem.answer3.value = aProblem.answers[2];
+document.problem.answer4.value = aProblem.answers[3];
+
 // グローバルデータマネージャー
 const repository = new Repository();
-
 // データの初期化
 (async () => {
   // リポジトリにデータを読み込む
@@ -267,7 +233,6 @@ const repository = new Repository();
   repository.mount("/boundaries", new HttpDriver("./data/N03-21_210101.json"));
   // await repository.loadData();
 
-  // 同期的にデータを取得
   let cityOfficeLocations = await repository.read("/cityOfficeLocations");
   let boundaries = await repository.read("/boundaries");
   //repository.getCityOfficeLocations();
@@ -378,6 +343,14 @@ const repository = new Repository();
       const toggleNode = document.querySelector("ul:has(input[name='oita'])");
       toggleNode.classList.toggle("filter", !checked);
     },
+    answerProblem: (evt) =>{
+      const answer = evt.target.returnValue -0 ;
+      if(answer == aProblem.correctAnswer) {
+        success.showModal();
+      } else {
+        error.showModal();
+      }
+    }
   };
 
   /* 

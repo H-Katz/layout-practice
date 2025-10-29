@@ -5,8 +5,8 @@
     <title>grid layout</title>
     <link rel="stylesheet" href="assets/css/base.css" />
     <link rel="stylesheet" href="assets/css/grid.css" />
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script> -->
     <style>
       body {
         color: #C3CCBC;
@@ -25,6 +25,41 @@
         clip-path: polygon(4% 50%, 4% 12%, 88% 12%, 80% 50%, 88% 88%, 4% 88%); 
         /* clip-path: polygon(6% 50%, 12% 12%, 88% 12%, 94% 50%, 88% 88%, 12% 88%);*/
       }
+
+      .card-button {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 200px;
+        padding: 1em;
+        margin: 1em auto;
+        background-color: #ffffff;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        font-size: 1rem;
+        font-weight: bold;
+        color: #333;
+        cursor: pointer;
+        transition: transform 0.1s, box-shadow 0.1s;
+      }
+
+      .card-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+      }
+
+      .card-button:active {
+        transform: translateY(2px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .button-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr); /* 2列 */
+        gap: 10px; /* ボタン間の余白 */
+        margin-top: 10px;
+      }
     </style>
   </head>
   <body>
@@ -32,14 +67,55 @@
         <p>ドキュメントヘッダ</p>
     </header>
     <main class="grid-layout">
-        <nav>アウトラインメニュー</nav>
-        <article>
+        <nav class="outline-nav">
+          <p>アウトラインメニュー</p>
+          <button onclick="document.getElementById('qtemplate').show()">ダイアログを開く</button>
+          <button onclick="document.getElementById('problemDialog').show()">問題ダイアログを開く</button>
+       </nav>
+        <article style="position: relative;">
             コンテンツ領域
+            <dialog id="qtemplate" style="background-color: transparent;">
+              <p>問題ダイアログです</p>
             <!-- path例 追加 -->
-            <svg id="profile" width="400" height="400" style="border:1px solid #ccc;">
+              <svg id="profile" width="400" height="400" style="border:2px solid black;">
                 <circle cx="100" cy="100" r="10" fill="green" stroke-width="3"/>
                 <path id="output" fill="none" stroke="black" stroke-width="2" />
-            </svg>
+              </svg>
+
+              <div class="button-grid">
+                <button>クリック</button>
+                <button onclick="qtemplate.close();">閉じる</button>
+                <button onclick="qtemplate.close(); success.showModal()">正解</button>
+                <button onclick="qtemplate.close(); error.showModal()">不正解</button>
+              </div>
+            </dialog>        
+
+            <dialog id="problemDialog" style="background-color: transparent;" onclose="controller.answerProblem(event)">
+              <form name="problem" method="dialog">
+
+                <h2><input type="text" value="問題" name="question" disabled></h2>
+            <!-- path例 追加 -->
+                <svg id="profile" width="400" height="400" style="border:2px solid black;">
+                  <circle cx="100" cy="100" r="10" fill="green" stroke-width="3"/>
+                  <path id="output" fill="none" stroke="black" stroke-width="2" />
+                </svg>
+
+                <div class="button-grid">
+                  <button class="card-button" type="submit" value="0"><input type="text" value="回答1" name="answer1" readonly></button>
+                  <button class="card-button" type="submit" value="1"><input type="text" value="回答2" name="answer2" readonly></button>
+                  <button class="card-button" type="submit" value="2"><input type="text" value="回答3" name="answer3" readonly></button>
+                  <button class="card-button" type="submit" value="3"><input type="text" value="回答4" name="answer4" readonly></button>
+                </div>
+              </form>
+            </dialog>   
+            <dialog id="success" style="background-color: transparent;" 
+              onclick="success.open && success.close()">
+              <p>正解！</p>
+            </dialog>
+            <dialog id="error" style="background-color: transparent;"
+              onclick="error.open && error.close()">
+              <p>不正解！</p>
+            </dialog>
         </article>
         <aside>
             <form name="$cities">
