@@ -60,6 +60,49 @@
         gap: 10px; /* ボタン間の余白 */
         margin-top: 10px;
       }
+
+      [role="tree"] {
+        padding: 0;
+      }
+
+      [role="treeitem"] {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      [role="treeitem"] summary > button {
+        display: none;
+        gap: 4px;
+      }
+      [role="treeitem"] summary:hover > button {
+        display: inline-block;
+      }
+
+      .editable-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.editable-label .edit {
+  opacity: 0;
+  width: 0;
+  padding: 0;
+  border: none;
+  font: inherit;
+  transition: all 0.2s ease;
+}
+
+.editable-label:focus-within .label-text {
+  display: none;
+}
+
+.editable-label:focus-within .edit {
+  width: auto;
+  opacity: 1;
+}
+
     </style>
   </head>
   <body>
@@ -70,17 +113,35 @@
         <nav class="outline-nav">
           <p>アウトラインメニュー</p>
           <button onclick="document.getElementById('qtemplate').show()">ダイアログを開く</button>
-          <button onclick="document.getElementById('problemDialog').show()">問題ダイアログを開く</button>
+          <button onclick="document.getElementById('problemDialog').show()">問題ダイアログを開く</button><br>
+          <button type="button" data-action="load">読込</button>
+          <button type="button" data-action="save">保存</button>
+          <ul role="tree">
+            <li role="treeitem" aria-expanded="true">
+              <details open>
+                <summary>
+                  <label class="editable-label">
+                    <span class="label-text">問題リスト</span>
+                    <input class="edit" type="text" value="問題リスト" name="problems[]" 
+                      onblur="this.previousElementSibling.textContent = this.value;"
+                      onkeydown="if(event.key === 'Enter') this.blur();">
+                  </label>
+                  <button type="button" data-action="add">新規</button>
+                </summary>
+                <ul>
+                  <li>問題1</li>
+                  <li>問題2</li>
+                  <li>問題3</li>
+                </ul>
+              </details>
+            </li>
+          </ul>
        </nav>
         <article style="position: relative;">
             コンテンツ領域
             <dialog id="qtemplate" style="background-color: transparent;">
               <p>問題ダイアログです</p>
-            <!-- path例 追加 -->
-              <svg id="profile" width="400" height="400" style="border:2px solid black;">
-                <circle cx="100" cy="100" r="10" fill="green" stroke-width="3"/>
-                <path id="output" fill="none" stroke="black" stroke-width="2" />
-              </svg>
+              <!-- path例 追加 -->
 
               <div class="button-grid">
                 <button>クリック</button>
@@ -92,7 +153,7 @@
 
             <dialog id="problemDialog" style="background-color: transparent;" onclose="controller.answerProblem(event)">
               <form name="problem" method="dialog">
-
+                <input type="hidden" name="order">
                 <h2><input type="text" value="問題" name="question" disabled></h2>
             <!-- path例 追加 -->
                 <svg id="profile" width="400" height="400" style="border:2px solid black;">
@@ -101,11 +162,12 @@
                 </svg>
 
                 <div class="button-grid">
-                  <button class="card-button" type="submit" value="0"><input type="text" value="回答1" name="answer1" readonly></button>
-                  <button class="card-button" type="submit" value="1"><input type="text" value="回答2" name="answer2" readonly></button>
-                  <button class="card-button" type="submit" value="2"><input type="text" value="回答3" name="answer3" readonly></button>
-                  <button class="card-button" type="submit" value="3"><input type="text" value="回答4" name="answer4" readonly></button>
+                  <button class="card-button" type="submit" value="0"><input type="text" value="回答1" name="answer1" disabled><input type="radio" name="correctAnswer" value="0" checked></button>
+                  <button class="card-button" type="submit" value="1"><input type="text" value="回答2" name="answer2" disabled><input type="radio" name="correctAnswer" value="1" ></button>
+                  <button class="card-button" type="submit" value="2"><input type="text" value="回答3" name="answer3" disabled><input type="radio" name="correctAnswer" value="2" ></button>
+                  <button class="card-button" type="submit" value="3"><input type="text" value="回答4" name="answer4" disabled><input type="radio" name="correctAnswer" value="3" ></button>
                 </div>
+                <button id="addButton"type="submit" value="4">追加</button>
               </form>
             </dialog>   
             <dialog id="success" style="background-color: transparent;" 

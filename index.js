@@ -199,7 +199,7 @@ var svg = new SVGCanvas("profile");
 svg.load("./N03-21_44_210101.geojson");
 var selectedCities = null;
 
-var aProblem = {
+var problems = [{
   question : "問題文",
   answers: [
     "クリック",
@@ -208,13 +208,85 @@ var aProblem = {
     "不正解"
   ],
   correctAnswer : 2
-}
+}]
 
-document.problem.question.value = aProblem.question;
-document.problem.answer1.value = aProblem.answers[0];
-document.problem.answer2.value = aProblem.answers[1];
-document.problem.answer3.value = aProblem.answers[2];
-document.problem.answer4.value = aProblem.answers[3];
+document.forms.problem.question.value = problems[0].question;
+document.forms.problem.answer1.value = problems[0].answers[0];
+document.forms.problem.answer2.value = problems[0].answers[1];
+document.forms.problem.answer3.value = problems[0].answers[2];
+document.forms.problem.answer4.value = problems[0].answers[3];
+problems = [];
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const item = btn.closest('[role="treeitem"]');
+  if (!item) return;
+
+  //const expanded = item.getAttribute('aria-expanded') === 'true';
+  switch (btn.dataset.action) {
+    //case 'open':   item.setAttribute('aria-expanded', 'true'); break;
+    //case 'close':  item.setAttribute('aria-expanded', 'false'); break;
+    //case 'toggle': item.setAttribute('aria-expanded', !expanded); break;
+    /*case 'edit':   {
+      e.preventDefault();
+      e.stopPropagation(); // summary のトグルを完全遮断
+      const label = item.querySelector('.editable-label');
+      const span  = label.querySelector('.label-text');
+      const input = label.querySelector('input');
+
+      // 表示・有効化を確実に
+      input.disabled = false;
+
+      // レイアウト反映後にフォーカス
+      requestAnimationFrame(() => input.focus({ preventScroll: true }));
+      break;
+    }*/
+    case "view": {
+      const order = btn.dataset.order -0;
+      document.forms.problem.order.value = order;
+    }
+    case "add": {
+      const order = document.forms.problem.order.value;
+
+      if(order == ""){
+        document.forms.problem.order.value = problems.length;
+        document.forms.problem.question.value = "問題";
+        document.forms.problem.answer1.value = "回答1";
+        document.forms.problem.answer2.value = "回答2";
+        document.forms.problem.answer3.value = "回答3";
+        document.forms.problem.answer4.value = "回答4";
+        document.forms.problem.correctAnswer.value = "0";
+        ["question", "answer1", "answer2", "answer3", "answer4"].forEach(name => {
+          const input = document.forms.problem[name];
+          input.disabled = false;
+        });
+        const submitButtons = document.forms.problem.querySelectorAll('button.card-button[type="submit"]');
+        submitButtons.forEach(btn => btn.disabled = true);
+        document.getElementById('addButton').setAttribute("style", "display: block;");
+        document.querySelectorAll('[name="correctAnswer"]').forEach(btn => btn.setAttribute("style", "display: inline;"));
+      }else{
+        document.forms.problem.question.value = problems[order].question;
+        document.forms.problem.answer1.value = problems[order].answers[0];
+        document.forms.problem.answer2.value = problems[order].answers[1];
+        document.forms.problem.answer3.value = problems[order].answers[2];
+        document.forms.problem.answer4.value = problems[order].answers[3];
+        document.forms.problem.correctAnswer.value = problems[order].correctAnswer;
+        const submitButtons = document.forms.problem.querySelectorAll('button.card-button[type="submit"]');
+        submitButtons.forEach(btn => btn.disabled = false);
+        ["question", "answer1", "answer2", "answer3", "answer4"].forEach(name => {
+          const input = document.forms.problem[name];
+          input.disabled = true;
+        });
+        document.getElementById('addButton').setAttribute("style", "display: none;");
+        document.querySelectorAll('[name="correctAnswer"]').forEach(btn => btn.setAttribute("style", "display: none;"));
+      }
+      document.getElementById('problemDialog').showModal();
+      break;
+    }
+  }
+});
+
 
 // グローバルデータマネージャー
 const repository = new Repository();
@@ -345,7 +417,29 @@ const repository = new Repository();
     },
     answerProblem: (evt) =>{
       const answer = evt.target.returnValue -0 ;
-      if(answer == aProblem.correctAnswer) {
+      const order = document.forms.problem.order.value -0;
+      if(answer == 4){
+        const order = document.forms.problem.order.value -0;
+        const question = document.forms.problem.question.value;
+        const answer1 = document.forms.problem.answer1.value;
+        const answer2 = document.forms.problem.answer2.value;
+        const answer3 = document.forms.problem.answer3.value;
+        const answer4 = document.forms.problem.answer4.value;
+        const correctAnswer = document.forms.problem.correctAnswer.value;
+        problems[order]={
+          question,
+          answers : [answer1, answer2, answer3, answer4],
+          correctAnswer : correctAnswer -0,
+        };
+        document.forms.problem.order.value = null; 
+        const ul = document.querySelector('[role="treeitem"]').querySelector('ul');
+        ul.innerHTML = "";
+        problems.forEach((problem, index) => {
+          const li = document.createElement("li");
+          li.innerHTML = `<li><button type="button" data-action="view" data-order="${index}">${problem.question}</button></li>`;
+          ul.appendChild(li);
+        });
+      }else if(answer == problems[order].correctAnswer) {
         success.showModal();
       } else {
         error.showModal();
