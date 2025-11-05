@@ -220,7 +220,7 @@ problems = [];
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
-  const item = btn.closest('[role="treeitem"]');
+  const item = btn.closest('.outline-nav');
   if (!item) return;
 
   //const expanded = item.getAttribute('aria-expanded') === 'true';
@@ -284,9 +284,58 @@ document.addEventListener('click', (e) => {
       document.getElementById('problemDialog').showModal();
       break;
     }
+    case 'save': {
+      try {
+        const json = JSON.stringify(problems, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'problems.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('保存に失敗しました: ' + err.message);
+      }
+      return;
+    }
+    case 'load': {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = (evt) => {
+        const file = evt.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            problems = JSON.parse(e.target.result);
+            updateProblemList();
+            alert(`${problems.length}件の問題を読み込みました`);
+          } catch (err) {
+            alert('ファイルの読み込みに失敗しました: ' + err.message);
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+      return;
+    }
   }
-});
+}); 
 
+// UI更新関数（既存コードから抽出）
+function updateProblemList() {
+  const ul = document.querySelector('[role="treeitem"]')?.querySelector('ul');
+  if (!ul) return;
+  ul.innerHTML = "";
+  problems.forEach((problem, index) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<button type="button" data-action="view" data-order="${index}">${problem.question}</button>`;
+    ul.appendChild(li);
+  });
+}
 
 // グローバルデータマネージャー
 const repository = new Repository();

@@ -78,31 +78,31 @@
       [role="treeitem"] summary:hover > button {
         display: inline-block;
       }
-
+      
+      /*
       .editable-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
 
-.editable-label .edit {
-  opacity: 0;
-  width: 0;
-  padding: 0;
-  border: none;
-  font: inherit;
-  transition: all 0.2s ease;
-}
+      .editable-label .edit {
+        opacity: 0;
+        width: 0;
+        padding: 0;
+        border: none;
+        font: inherit;
+        transition: all 0.2s ease;
+      }
 
-.editable-label:focus-within .label-text {
-  display: none;
-}
+      .editable-label:focus-within .label-text {
+        display: none;
+      }
 
-.editable-label:focus-within .edit {
-  width: auto;
-  opacity: 1;
-}
-
+      .editable-label:focus-within .edit {
+        width: auto;
+        opacity: 1;
+      } */
     </style>
   </head>
   <body>
@@ -115,17 +115,17 @@
           <button onclick="document.getElementById('qtemplate').show()">ダイアログを開く</button>
           <button onclick="document.getElementById('problemDialog').show()">問題ダイアログを開く</button><br>
           <button type="button" data-action="load">読込</button>
-          <button type="button" data-action="save">保存</button>
+          <button type="button" data-action="save">保存</button> 
           <ul role="tree">
-            <li role="treeitem" aria-expanded="true">
+           <li role="treeitem" aria-expanded="true">
               <details open>
                 <summary>
                   <label class="editable-label">
                     <span class="label-text">問題リスト</span>
-                    <input class="edit" type="text" value="問題リスト" name="problems[]" 
+                    <!-- <input class="edit" type="text" value="問題リスト" name="problems[]" 
                       onblur="this.previousElementSibling.textContent = this.value;"
-                      onkeydown="if(event.key === 'Enter') this.blur();">
-                  </label>
+                      onkeydown="if(event.key === 'Enter') this.blur();"> -->
+                  </label>       
                   <button type="button" data-action="add">新規</button>
                 </summary>
                 <ul>
