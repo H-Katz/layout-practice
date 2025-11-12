@@ -245,42 +245,50 @@ document.addEventListener('click', (e) => {
     case "view": {
       const order = btn.dataset.order -0;
       document.forms.problem.order.value = order;
+
+      document.forms.problem.question.value = problems[order].question;
+      document.forms.problem.answer1.value = problems[order].answers[0];
+      document.forms.problem.answer2.value = problems[order].answers[1];
+      document.forms.problem.answer3.value = problems[order].answers[2];
+      document.forms.problem.answer4.value = problems[order].answers[3];
+      document.forms.problem.correctAnswer.value = problems[order].correctAnswer;
+      const submitButtons = document.forms.problem.querySelectorAll('button.card-button[type="submit"]');
+      submitButtons.forEach(btn => btn.disabled = false);
+      ["question", "answer1", "answer2", "answer3", "answer4"].forEach(name => {
+        const input = document.forms.problem[name];
+        input.disabled = true;
+      });
+      document.getElementById('addButton').setAttribute("style", "display: none;");
+      document.querySelectorAll('[name="correctAnswer"]').forEach(btn => btn.setAttribute("style", "display: none;"));
+
+      document.getElementById('problemDialog').showModal();
+      break;
+    }
+    case "update": {
+      const order = btn.dataset.order -0;
+      document.forms.problem.order.value = order;
     }
     case "add": {
-      const order = document.forms.problem.order.value;
+      const order = btn.dataset.order;
+      document.forms.problem.order.value = order || problems.length;
 
-      if(order == ""){
-        document.forms.problem.order.value = problems.length;
-        document.forms.problem.question.value = "問題";
-        document.forms.problem.answer1.value = "回答1";
-        document.forms.problem.answer2.value = "回答2";
-        document.forms.problem.answer3.value = "回答3";
-        document.forms.problem.answer4.value = "回答4";
-        document.forms.problem.correctAnswer.value = "0";
-        ["question", "answer1", "answer2", "answer3", "answer4"].forEach(name => {
-          const input = document.forms.problem[name];
-          input.disabled = false;
-        });
-        const submitButtons = document.forms.problem.querySelectorAll('button.card-button[type="submit"]');
-        submitButtons.forEach(btn => btn.disabled = true);
-        document.getElementById('addButton').setAttribute("style", "display: block;");
-        document.querySelectorAll('[name="correctAnswer"]').forEach(btn => btn.setAttribute("style", "display: inline;"));
-      }else{
-        document.forms.problem.question.value = problems[order].question;
-        document.forms.problem.answer1.value = problems[order].answers[0];
-        document.forms.problem.answer2.value = problems[order].answers[1];
-        document.forms.problem.answer3.value = problems[order].answers[2];
-        document.forms.problem.answer4.value = problems[order].answers[3];
-        document.forms.problem.correctAnswer.value = problems[order].correctAnswer;
-        const submitButtons = document.forms.problem.querySelectorAll('button.card-button[type="submit"]');
-        submitButtons.forEach(btn => btn.disabled = false);
-        ["question", "answer1", "answer2", "answer3", "answer4"].forEach(name => {
-          const input = document.forms.problem[name];
-          input.disabled = true;
-        });
-        document.getElementById('addButton').setAttribute("style", "display: none;");
-        document.querySelectorAll('[name="correctAnswer"]').forEach(btn => btn.setAttribute("style", "display: none;"));
-      }
+      document.forms.problem.question.value = "問題";
+      document.forms.problem.answer1.value = "回答1";
+      document.forms.problem.answer2.value = "回答2";
+      document.forms.problem.answer3.value = "回答3";
+      document.forms.problem.answer4.value = "回答4";
+      document.forms.problem.correctAnswer.value = "0";
+      const submitButtons = document.forms.problem.querySelectorAll('button.card-button[type="submit"]');
+      submitButtons.forEach(btn => btn.disabled = true);
+      ["question", "answer1", "answer2", "answer3", "answer4"].forEach(name => {
+        const input = document.forms.problem[name];
+        input.disabled = false;
+      });
+      const addButton = document.getElementById('addButton');
+      addButton.setAttribute("style", "display: block;");
+      addButton.innerHTML = order == null ? "追加" : "更新";
+      document.querySelectorAll('[name="correctAnswer"]').forEach(btn => btn.setAttribute("style", "display: inline;"));
+
       document.getElementById('problemDialog').showModal();
       break;
     }
@@ -480,12 +488,14 @@ const repository = new Repository();
           answers : [answer1, answer2, answer3, answer4],
           correctAnswer : correctAnswer -0,
         };
-        document.forms.problem.order.value = null; 
+
         const ul = document.querySelector('[role="treeitem"]').querySelector('ul');
         ul.innerHTML = "";
         problems.forEach((problem, index) => {
           const li = document.createElement("li");
-          li.innerHTML = `<li><button type="button" data-action="view" data-order="${index}">${problem.question}</button></li>`;
+          li.innerHTML = `<li><button type="button" data-action="view" data-order="${index}">${problem.question}</button>
+          <button type="button" data-action="update" data-order="${index}">変更</button>
+          </li>`;
           ul.appendChild(li);
         });
       }else if(answer == problems[order].correctAnswer) {
