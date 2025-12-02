@@ -243,55 +243,52 @@ document.addEventListener('click', (e) => {
       break;
     }*/
     case "update": 
-    case "view": {
-      const isView = btn.dataset.action == "view";
-      const order = btn.dataset.order -0;
-      document.forms.problem.order.value = order;
-
-      document.forms.problem.question.value = problems[order].question;
-      document.forms.problem.answer1.value = problems[order].answers[0];
-      document.forms.problem.answer2.value = problems[order].answers[1];
-      document.forms.problem.answer3.value = problems[order].answers[2];
-      document.forms.problem.answer4.value = problems[order].answers[3];
-      document.forms.problem.correctAnswer.value = problems[order].correctAnswer;
-      const submitButtons = document.forms.problem.querySelectorAll('button.card-button[type="submit"]');
-      submitButtons.forEach(btn => btn.disabled = !isView);
-      ["question", "answer1", "answer2", "answer3", "answer4"].forEach(name => {
-        const input = document.forms.problem[name];
-        input.disabled = isView
-      });
-      const addButton = document.getElementById('addButton');
-      const display = isView ? "none": "block";
-      addButton.setAttribute("style", `display: ${display};`);
-      addButton.innerHTML = "更新";
-      document.querySelectorAll('[name="correctAnswer"]').forEach(btn => 
-        btn.setAttribute("style", `display: ${display};`)
-      );
-
-      document.getElementById('problemDialog').showModal();
-      break;
-    }
+    case "view": 
     case "add": {
+      const action = btn.dataset.action;
       const order = btn.dataset.order;
-      document.forms.problem.order.value = order || problems.length;
+      const params = {
+        "update": {
+          order: order - 0,
+          submitButtonsStatus: true,
+          problemButtonsStatus: false,
+          answerButtonView: "block",
+          addButtonText: "更新",
+        },
+        "view":{
+          order: order - 0,
+          submitButtonsStatus: false,
+          problemButtonsStatus: true,
+          answerButtonView: "none",
+        },
+        "add": {
+          order: order,
+          submitButtonsStatus: true,
+          problemButtonsStatus: false,
+          answerButtonView: "block",
+        }
+      }
+      const orderValue = params[action].order ?? problems.length;
+      document.forms.problem.order.value = orderValue;
 
-      document.forms.problem.question.value = "問題";
-      document.forms.problem.answer1.value = "回答1";
-      document.forms.problem.answer2.value = "回答2";
-      document.forms.problem.answer3.value = "回答3";
-      document.forms.problem.answer4.value = "回答4";
-      document.forms.problem.correctAnswer.value = "0";
+      document.forms.problem.question.value = problems[orderValue]?.question ?? "問題";
+      document.forms.problem.answer1.value = problems[orderValue]?.answers[0] ?? "回答1";
+      document.forms.problem.answer2.value = problems[orderValue]?.answers[1] ?? "回答2";
+      document.forms.problem.answer3.value = problems[orderValue]?.answers[2] ?? "回答3";
+      document.forms.problem.answer4.value = problems[orderValue]?.answers[3] ?? "回答4";
+      document.forms.problem.correctAnswer.value = problems[orderValue]?.correctAnswer ?? "0";
       const submitButtons = document.forms.problem.querySelectorAll('button.card-button[type="submit"]');
-      submitButtons.forEach(btn => btn.disabled = true);
+      submitButtons.forEach(btn => btn.disabled = params[action].submitButtonsStatus);
       ["question", "answer1", "answer2", "answer3", "answer4"].forEach(name => {
         const input = document.forms.problem[name];
-        input.disabled = false;
+        input.disabled = params[action].problemButtonsStatus;
       });
       const addButton = document.getElementById('addButton');
-      addButton.setAttribute("style", "display: block;");
-      addButton.innerHTML = "追加";
+      const viewStyle = params[action].answerButtonView;
+      addButton.setAttribute("style", `display: ${viewStyle};`);
+      addButton.innerHTML = params[action].addButtonText ?? "追加";
       document.querySelectorAll('[name="correctAnswer"]').forEach(btn => 
-        btn.setAttribute("style", "display: inline;")
+        btn.setAttribute("style", `display: ${viewStyle};`)
       );
 
       document.getElementById('problemDialog').showModal();
