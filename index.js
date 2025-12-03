@@ -348,12 +348,84 @@ function updateProblemList(problems) {
   ul.innerHTML = "";
   problems.forEach((problem, index) => {
     const li = document.createElement("li");
-    li.innerHTML = `<li><button type="button" data-action="view" data-order="${index}">${problem.question}</button>
+    li.setAttribute("draggable", "true");
+    li.setAttribute("data-index", index);
+    li.classList.add("draggable-item");
+    li.setAttribute("style", "white-space: nowrap;");
+    li.innerHTML = `<button type="button" data-action="view" data-order="${index}">${problem.question}</button>
     <button type="button" data-action="update" data-order="${index}">変更</button>
     <button type="button" data-action="delete" data-order="${index}">削除</button>
-    </li>`;
+    <span class="drag-handle">☰</span>
+    `;
     ul.appendChild(li);
   });
+
+  // ドラッグアンドドロップ機能の設定
+  let draggedElement = null;
+  let draggedIndex = null;
+
+  // ドラッグ開始
+  ul.addEventListener('dragstart', (e) => {
+    if (e.target.closest('li[draggable="true"]')) {
+      draggedElement = e.target.closest('li[draggable="true"]');
+      draggedIndex = parseInt(draggedElement.getAttribute('data-index'));
+      draggedElement.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/html', draggedElement.innerHTML);
+    }
+  });
+
+  // ドラッグ中
+  ul.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    const targetLi = e.target.closest('li[draggable="true"]');
+    if (targetLi && targetLi !== draggedElement) {
+      const targetIndex = parseInt(targetLi.getAttribute('data-index'));
+      const rect = targetLi.getBoundingClientRect();
+      const midpoint = rect.top + rect.height / 2;
+      
+      if (e.clientY < midpoint) {
+        ul.insertBefore(draggedElement, targetLi);
+      } else {
+        ul.insertBefore(draggedElement, targetLi.nextSibling);
+      }
+    }
+  });
+
+  // ドロップ
+  ul.addEventListener('drop', (e) => {
+    e.preventDefault();
+    
+    if (draggedElement) {
+      const targetLi = e.target.closest('li[draggable="true"]');
+      if (targetLi && targetLi !== draggedElement) {
+        const targetIndex = parseInt(targetLi.getAttribute('data-index'));
+        
+        // problems配列の順序を更新
+        const item = problems.splice(draggedIndex, 1)[0];
+        problems.splice(targetIndex, 0, item);
+        
+        // UIを再描画
+        updateProblemList(problems);
+      }
+      
+      draggedElement.classList.remove('dragging');
+      draggedElement = null;
+      draggedIndex = null;
+    }
+  });
+
+  // ドラッグ終了
+  ul.addEventListener('dragend', (e) => {
+    if (draggedElement) {
+      draggedElement.classList.remove('dragging');
+      draggedElement = null;
+      draggedIndex = null;
+    }
+  });
+
 }
 
 // グローバルデータマネージャー
