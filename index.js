@@ -345,20 +345,20 @@ document.addEventListener('click', (e) => {
 function updateProblemList(problems) {
   const ul = document.querySelector('[role="treeitem"]')?.querySelector('ul');
   if (!ul) return;
-  ul.innerHTML = "";
-  problems.forEach((problem, index) => {
-    const li = document.createElement("li");
-    li.setAttribute("draggable", "true");
-    li.setAttribute("data-index", index);
-    li.classList.add("draggable-item");
-    li.setAttribute("style", "white-space: nowrap;");
-    li.innerHTML = `<button type="button" data-action="view" data-order="${index}">${problem.question}</button>
+
+  const range = document.createRange();
+  range.selectNodeContents(ul);
+  const rootFragment = range.createContextualFragment(
+    problems.reduce((fragments, problem, index)=>{
+    fragments += `<li draggable="true" data-index="${index}" class="draggable-item" style="white-space: nowrap;">
+    <button type="button" data-action="view" data-order="${index}">${problem.question}</button>
     <button type="button" data-action="update" data-order="${index}">変更</button>
     <button type="button" data-action="delete" data-order="${index}">削除</button>
     <span class="drag-handle">☰</span>
-    `;
-    ul.appendChild(li);
-  });
+    </li>`;
+    return fragments;
+  },""));
+  ul.replaceChildren(rootFragment);
 
   // ドラッグアンドドロップ機能の設定
   let draggedElement = null;
