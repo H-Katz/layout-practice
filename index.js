@@ -350,14 +350,16 @@ function updateProblemList(problems) {
   range.selectNodeContents(ul);
   const rootFragment = range.createContextualFragment(
     problems.reduce((fragments, problem, index)=>{
-    fragments += `<li draggable="true" data-index="${index}" class="draggable-item" style="white-space: nowrap;">
-    <button type="button" data-action="view" data-order="${index}">${problem.question}</button>
-    <button type="button" data-action="update" data-order="${index}">変更</button>
-    <button type="button" data-action="delete" data-order="${index}">削除</button>
-    <span class="drag-handle">☰</span>
-    </li>`;
-    return fragments;
-  },""));
+      fragments += `<li draggable="true" data-index="${index}" class="draggable-item" style="white-space: nowrap;">
+        <button type="button" data-action="view" data-order="${index}">${problem.question}</button>
+        <button type="button" data-action="update" data-order="${index}">変更</button>
+        <button type="button" data-action="delete" data-order="${index}">削除</button>
+        <span class="drag-handle">☰</span>
+      </li>`;
+      return fragments;
+    },"")
+  );
+  range.detach();
   ul.replaceChildren(rootFragment);
 
   // ドラッグアンドドロップ機能の設定
