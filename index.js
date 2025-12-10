@@ -235,6 +235,9 @@ var selectedCities = null;
 
 var problems = [{
   question : "問題文",
+  cities: [
+    "大分県"
+  ],
   answers: [
     "クリック",
     "閉じる",
@@ -245,6 +248,10 @@ var problems = [{
 }]
 
 document.forms.problem.question.value = problems[0].question;
+document.forms.problem.city1.value = problems[0].cities[0];
+document.forms.problem.city2.value = problems[0].cities[1];
+document.forms.problem.city3.value = problems[0].cities[2];
+document.forms.problem.city4.value = problems[0].cities[3];
 document.forms.problem.answer1.value = problems[0].answers[0];
 document.forms.problem.answer2.value = problems[0].answers[1];
 document.forms.problem.answer3.value = problems[0].answers[2];
@@ -306,6 +313,10 @@ document.addEventListener('click', (e) => {
       document.forms.problem.order.value = orderValue;
 
       document.forms.problem.question.value = problems[orderValue]?.question ?? "問題";
+      document.forms.problem.city1.value = problems[orderValue]?.cities[0] ?? "大分県";
+      document.forms.problem.city2.value = problems[orderValue]?.cities[1] ?? "";
+      document.forms.problem.city3.value = problems[orderValue]?.cities[2] ?? "";
+      document.forms.problem.city4.value = problems[orderValue]?.cities[3] ?? "";
       document.forms.problem.answer1.value = problems[orderValue]?.answers[0] ?? "回答1";
       document.forms.problem.answer2.value = problems[orderValue]?.answers[1] ?? "回答2";
       document.forms.problem.answer3.value = problems[orderValue]?.answers[2] ?? "回答3";
@@ -325,6 +336,7 @@ document.addEventListener('click', (e) => {
         btn.setAttribute("style", `display: ${viewStyle};`)
       );
 
+      document.forms.$cities.prefecture.value = problems[orderValue]?.cities[0] ?? "大分県"
       document.getElementById('problemDialog').show();
       break;
     }
@@ -598,6 +610,7 @@ const repository = new Repository();
       }else if(answer == 4){
         const order = document.forms.problem.order.value -0;
         const question = document.forms.problem.question.value;
+        const cities =  ["city1", "city2", "city3", "city4"].map(city => document.forms.problem[city].value);
         const answer1 = document.forms.problem.answer1.value;
         const answer2 = document.forms.problem.answer2.value;
         const answer3 = document.forms.problem.answer3.value;
@@ -605,6 +618,7 @@ const repository = new Repository();
         const correctAnswer = document.forms.problem.correctAnswer.value;
         problems[order]={
           question,
+          cities,
           answers : [answer1, answer2, answer3, answer4],
           correctAnswer : correctAnswer -0,
         };
@@ -698,6 +712,7 @@ cities = {"44000": "大分県",
     const value = evt.target.value;
     // alert(value);
     // 1. 選択した都道府県に含まれる幾何データを取得
+    document.forms.problem.city1.value = value;
     const geometries = boundaries.features
       .filter((feature) => feature.properties["N03_001"] == value)
       .map((feature) => feature.geometry);
