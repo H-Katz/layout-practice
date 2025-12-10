@@ -50,10 +50,34 @@ class SVGCanvas {
     this.minLat = this.min(lats);
     this.maxLat = this.max(lats);
 
-    const aspect = (this.maxLat - this.minLat) / (this.maxLon - this.minLon);
+    // this.aspect = (this.maxLat - this.minLat) / (this.maxLon - this.minLon);
+    // this.width = this.root.getAttribute("width") - 0;
+    // this.height = aspect * this.width;
+    // this.root.setAttribute("height", Math.round(this.height));
+        
+    // Canvasサイズは固定
     this.width = this.root.getAttribute("width") - 0;
-    this.height = aspect * this.width;
-    this.root.setAttribute("height", Math.round(this.height));
+    this.height = this.root.getAttribute("height") - 0;
+        
+    // データのアスペクト比
+    const dataAspect = (this.maxLat - this.minLat) / (this.maxLon - this.minLon);
+    // Canvasのアスペクト比
+    const canvasAspect = this.height / this.width;
+        
+    // アスペクト比の比較に基づいて描画領域を計算
+    if (dataAspect > canvasAspect) {
+      // データが縦長：左右に余白を設ける
+      this.drawHeight = this.height;
+      this.drawWidth = this.drawHeight / dataAspect;
+      this.offsetX = (this.width - this.drawWidth) / 2;
+      this.offsetY = 0;
+    } else {
+      // データが横長：上下に余白を設ける
+      this.drawWidth = this.width;
+      this.drawHeight = this.drawWidth * dataAspect;
+      this.offsetX = 0;
+      this.offsetY = (this.height - this.drawHeight) / 2;
+    }
   }
   min(ary) {
     return ary.reduce((a, b) => Math.min(a, b));
@@ -71,11 +95,21 @@ class SVGCanvas {
     return polyline.map((point) => this.toCanvasCoordFromPoint(point));
   }
   toCanvasCoordFromPoint([lon, lat]) {
+      // データ座標を0-1の範囲に正規化
+      const normalizedX = (lon - this.minLon) / (this.maxLon - this.minLon);
+      const normalizedY = (lat - this.minLat) / (this.maxLat - this.minLat);
+        
+      // 描画領域内の座標に変換（上下反転）
+      const x = this.offsetX + normalizedX * this.drawWidth;
+      const y = this.offsetY + this.drawHeight - (normalizedY * this.drawHeight);
+        
+      return [x, y];
+    /*
     return [
       ((lon - this.minLon) / (this.maxLon - this.minLon)) * this.width,
       this.height -
         ((lat - this.minLat) / (this.maxLat - this.minLat)) * this.height,
-    ];
+    ];*/
   }
   toPath(polyline) {
     const first = polyline[0];
@@ -291,7 +325,7 @@ document.addEventListener('click', (e) => {
         btn.setAttribute("style", `display: ${viewStyle};`)
       );
 
-      document.getElementById('problemDialog').showModal();
+      document.getElementById('problemDialog').show();
       break;
     }
     case 'delete':{
@@ -558,9 +592,10 @@ const repository = new Repository();
       toggleNode.classList.toggle("filter", !checked);
     },
     answerProblem: (evt) =>{
-      const answer = evt.target.returnValue -0 ;
+      const answer = evt.target.returnValue ? evt.target.returnValue -0 : null;
       const order = document.forms.problem.order.value -0;
-      if(answer == 4){
+      if(answer == null){
+      }else if(answer == 4){
         const order = document.forms.problem.order.value -0;
         const question = document.forms.problem.question.value;
         const answer1 = document.forms.problem.answer1.value;

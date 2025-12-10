@@ -189,12 +189,12 @@
               </div>
             </dialog>        
 
-            <dialog id="problemDialog" style="background-color: transparent;" onclose="controller.answerProblem(event)">
+            <dialog id="problemDialog" style="background-color: transparent;" onkeydown="if(event.key === 'Escape') this.close();" onclose="controller.answerProblem(event)">
               <form name="problem" method="dialog">
                 <input type="hidden" name="order">
                 <h2><input type="text" value="問題" name="question" disabled></h2>
             <!-- path例 追加 -->
-                <svg id="profile" width="400" height="400" style="border:2px solid black;">
+                <svg id="profile" width="400" height="400" style="border:2px solid black; display: block; margin: 0 auto;">
                   <circle cx="100" cy="100" r="10" fill="green" stroke-width="3"/>
                   <path id="output" fill="none" stroke="black" stroke-width="2" />
                 </svg>
