@@ -103,6 +103,44 @@
         width: auto;
         opacity: 1;
       } */
+
+      /*
+  .draggable-item {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  gap: 8px;
+  cursor: move;
+  transition: background-color 0.2s;
+  padding: 4px 0;
+}
+
+.drag-handle {
+  display: inline-block;
+  cursor: move;
+  user-select: none;
+  color: #666;
+  font-size: 1.2em;
+  flex-shrink: 0;
+}
+
+.drag-handle:hover {
+  color: #333;
+}
+
+.draggable-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.draggable-item.dragging {
+  opacity: 0.5;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.draggable-item button {
+  cursor: pointer;
+  flex-shrink: 0;
+} */
     </style>
   </head>
   <body>
@@ -151,7 +189,7 @@
               </div>
             </dialog>        
 
-            <dialog id="problemDialog" style="background-color: transparent;" onclose="controller.answerProblem(event)">
+            <dialog id="problemDialog" style="background-color: transparent;" onkeydown="if(event.key === 'Escape') this.close();" onclose="controller.answerProblem(event)">
               <form name="problem" method="dialog">
                 <header style="display: flex; justify-content: space-between; align-items: center;">
                   <input type="hidden" name="order">
@@ -162,7 +200,12 @@
                   <button type="submit" value="cancel">取消</button>
                 </header>
             <!-- path例 追加 -->
-                <svg id="profile" width="400" height="400" style="border:2px solid black;">
+                
+                <input type="hidden" name="city1">
+                <input type="hidden" name="city2">
+                <input type="hidden" name="city3">
+                <input type="hidden" name="city4">
+                <svg id="profile" width="400" height="400" style="border:2px solid black; display: block; margin: 0 auto;">
                   <circle cx="100" cy="100" r="10" fill="green" stroke-width="3"/>
                   <path id="output" fill="none" stroke="black" stroke-width="2" />
                 </svg>

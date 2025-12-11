@@ -50,10 +50,34 @@ class SVGCanvas {
     this.minLat = this.min(lats);
     this.maxLat = this.max(lats);
 
-    const aspect = (this.maxLat - this.minLat) / (this.maxLon - this.minLon);
+    // this.aspect = (this.maxLat - this.minLat) / (this.maxLon - this.minLon);
+    // this.width = this.root.getAttribute("width") - 0;
+    // this.height = aspect * this.width;
+    // this.root.setAttribute("height", Math.round(this.height));
+        
+    // Canvasサイズは固定
     this.width = this.root.getAttribute("width") - 0;
-    this.height = aspect * this.width;
-    this.root.setAttribute("height", Math.round(this.height));
+    this.height = this.root.getAttribute("height") - 0;
+        
+    // データのアスペクト比
+    const dataAspect = (this.maxLat - this.minLat) / (this.maxLon - this.minLon);
+    // Canvasのアスペクト比
+    const canvasAspect = this.height / this.width;
+        
+    // アスペクト比の比較に基づいて描画領域を計算
+    if (dataAspect > canvasAspect) {
+      // データが縦長：左右に余白を設ける
+      this.drawHeight = this.height;
+      this.drawWidth = this.drawHeight / dataAspect;
+      this.offsetX = (this.width - this.drawWidth) / 2;
+      this.offsetY = 0;
+    } else {
+      // データが横長：上下に余白を設ける
+      this.drawWidth = this.width;
+      this.drawHeight = this.drawWidth * dataAspect;
+      this.offsetX = 0;
+      this.offsetY = (this.height - this.drawHeight) / 2;
+    }
   }
   min(ary) {
     return ary.reduce((a, b) => Math.min(a, b));
@@ -71,11 +95,21 @@ class SVGCanvas {
     return polyline.map((point) => this.toCanvasCoordFromPoint(point));
   }
   toCanvasCoordFromPoint([lon, lat]) {
+      // データ座標を0-1の範囲に正規化
+      const normalizedX = (lon - this.minLon) / (this.maxLon - this.minLon);
+      const normalizedY = (lat - this.minLat) / (this.maxLat - this.minLat);
+        
+      // 描画領域内の座標に変換（上下反転）
+      const x = this.offsetX + normalizedX * this.drawWidth;
+      const y = this.offsetY + this.drawHeight - (normalizedY * this.drawHeight);
+        
+      return [x, y];
+    /*
     return [
       ((lon - this.minLon) / (this.maxLon - this.minLon)) * this.width,
       this.height -
         ((lat - this.minLat) / (this.maxLat - this.minLat)) * this.height,
-    ];
+    ];*/
   }
   toPath(polyline) {
     const first = polyline[0];
@@ -201,6 +235,9 @@ var selectedCities = null;
 
 var problems = [{
   question : "問題文",
+  cities: [
+    "大分県"
+  ],
   answers: [
     "クリック",
     "閉じる",
@@ -211,6 +248,10 @@ var problems = [{
 }]
 
 document.forms.problem.question.value = problems[0].question;
+document.forms.problem.city1.value = problems[0].cities[0];
+document.forms.problem.city2.value = problems[0].cities[1];
+document.forms.problem.city3.value = problems[0].cities[2];
+document.forms.problem.city4.value = problems[0].cities[3];
 document.forms.problem.answer1.value = problems[0].answers[0];
 document.forms.problem.answer2.value = problems[0].answers[1];
 document.forms.problem.answer3.value = problems[0].answers[2];
@@ -272,6 +313,10 @@ document.addEventListener('click', (e) => {
       document.forms.problem.order.value = orderValue;
 
       document.forms.problem.question.value = problems[orderValue]?.question ?? "問題";
+      document.forms.problem.city1.value = problems[orderValue]?.cities[0] ?? "大分県";
+      document.forms.problem.city2.value = problems[orderValue]?.cities[1] ?? "";
+      document.forms.problem.city3.value = problems[orderValue]?.cities[2] ?? "";
+      document.forms.problem.city4.value = problems[orderValue]?.cities[3] ?? "";
       document.forms.problem.answer1.value = problems[orderValue]?.answers[0] ?? "回答1";
       document.forms.problem.answer2.value = problems[orderValue]?.answers[1] ?? "回答2";
       document.forms.problem.answer3.value = problems[orderValue]?.answers[2] ?? "回答3";
@@ -291,7 +336,16 @@ document.addEventListener('click', (e) => {
         btn.setAttribute("style", `display: ${viewStyle};`)
       );
 
-      document.getElementById('problemDialog').showModal();
+      document.forms.$cities.prefecture.value = problems[orderValue]?.cities[0] ?? "大分県"
+      document.getElementById('problemDialog').show();
+      break;
+    }
+    case "delete": {
+      if(window.confirm("削除しますか？")) {
+        const order = btn.dataset.order;
+        problems.splice(order, 1);
+        updateProblemList(problems);
+      }
       break;
     }
     case "delete": {
@@ -347,16 +401,89 @@ document.addEventListener('click', (e) => {
 function updateProblemList(problems) {
   const ul = document.querySelector('[role="treeitem"]')?.querySelector('ul');
   if (!ul) return;
-  ul.innerHTML = "";
-  problems.forEach((problem, index) => {
-    const li = document.createElement("li");
-    li.innerHTML = `<button type="button" data-action="view" data-order="${index}">${problem.question}</button>
-    <button type="button" data-action="update" data-order="${index}">変更</button>
-    <button type="button" data-action="delete" data-order="${index}">削除</button>
-    <span class="drag-handle">☰</span>
-    `
-    ul.appendChild(li);
+
+  const range = document.createRange();
+  range.selectNodeContents(ul);
+  const rootFragment = range.createContextualFragment(
+    problems.reduce((fragments, problem, index)=>{
+      fragments += `<li draggable="true" data-index="${index}" class="draggable-item" style="white-space: nowrap;">
+        <button type="button" data-action="view" data-order="${index}">${problem.question}</button>
+        <button type="button" data-action="update" data-order="${index}">変更</button>
+        <button type="button" data-action="delete" data-order="${index}">削除</button>
+        <span class="drag-handle">☰</span>
+      </li>`;
+      return fragments;
+    },"")
+  );
+  range.detach();
+  ul.replaceChildren(rootFragment);
+
+  // ドラッグアンドドロップ機能の設定
+  let draggedElement = null;
+  let draggedIndex = null;
+
+  // ドラッグ開始
+  ul.addEventListener('dragstart', (e) => {
+    if (e.target.closest('li[draggable="true"]')) {
+      draggedElement = e.target.closest('li[draggable="true"]');
+      draggedIndex = parseInt(draggedElement.getAttribute('data-index'));
+      draggedElement.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/html', draggedElement.innerHTML);
+    }
   });
+
+  // ドラッグ中
+  ul.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    const targetLi = e.target.closest('li[draggable="true"]');
+    if (targetLi && targetLi !== draggedElement) {
+      const targetIndex = parseInt(targetLi.getAttribute('data-index'));
+      const rect = targetLi.getBoundingClientRect();
+      const midpoint = rect.top + rect.height / 2;
+      
+      if (e.clientY < midpoint) {
+        ul.insertBefore(draggedElement, targetLi);
+      } else {
+        ul.insertBefore(draggedElement, targetLi.nextSibling);
+      }
+    }
+  });
+
+  // ドロップ
+  ul.addEventListener('drop', (e) => {
+    e.preventDefault();
+    
+    if (draggedElement) {
+      const targetLi = e.target.closest('li[draggable="true"]');
+      if (targetLi && targetLi !== draggedElement) {
+        const targetIndex = parseInt(targetLi.getAttribute('data-index'));
+        
+        // problems配列の順序を更新
+        const item = problems.splice(draggedIndex, 1)[0];
+        problems.splice(targetIndex, 0, item);
+        
+        // UIを再描画
+        updateProblemList(problems);
+      }
+      
+      draggedElement.classList.remove('dragging');
+      draggedElement = null;
+      draggedIndex = null;
+    }
+  });
+
+  // ドラッグ終了
+  ul.addEventListener('dragend', (e) => {
+    if (draggedElement) {
+      draggedElement.classList.remove('dragging');
+      draggedElement = null;
+      draggedIndex = null;
+    }
+  });
+
 }
 
 // グローバルデータマネージャー
@@ -492,6 +619,7 @@ const repository = new Repository();
       if(evt.target.returnValue == "edit"){
         const order = document.forms.problem.order.value -0;
         const question = document.forms.problem.question.value;
+        const cities =  ["city1", "city2", "city3", "city4"].map(city => document.forms.problem[city].value);
         const answer1 = document.forms.problem.answer1.value;
         const answer2 = document.forms.problem.answer2.value;
         const answer3 = document.forms.problem.answer3.value;
@@ -499,6 +627,7 @@ const repository = new Repository();
         const correctAnswer = document.forms.problem.correctAnswer.value;
         problems[order]={
           question,
+          cities,
           answers : [answer1, answer2, answer3, answer4],
           correctAnswer : correctAnswer -0,
         };
@@ -597,6 +726,7 @@ cities = {"44000": "大分県",
     const value = evt.target.value;
     // alert(value);
     // 1. 選択した都道府県に含まれる幾何データを取得
+    document.forms.problem.city1.value = value;
     const geometries = boundaries.features
       .filter((feature) => feature.properties["N03_001"] == value)
       .map((feature) => feature.geometry);
