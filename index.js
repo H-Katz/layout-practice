@@ -295,9 +295,11 @@ document.addEventListener('click', (e) => {
       break;
     }
     case "delete": {
-      const order = btn.dataset.order;
-      problems.splice(order, 1);
-      updateProblemList(problems);
+      if(window.confirm("削除しますか？")) {
+        const order = btn.dataset.order;
+        problems.splice(order, 1);
+        updateProblemList(problems);
+      }
       break;
     }
     case 'save': {
