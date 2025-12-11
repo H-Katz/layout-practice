@@ -294,6 +294,12 @@ document.addEventListener('click', (e) => {
       document.getElementById('problemDialog').showModal();
       break;
     }
+    case "delete": {
+      const order = btn.dataset.order;
+      problems.splice(order, 1);
+      updateProblemList(problems);
+      break;
+    }
     case 'save': {
       try {
         const json = JSON.stringify(problems, null, 2);
@@ -321,7 +327,7 @@ document.addEventListener('click', (e) => {
         reader.onload = (e) => {
           try {
             problems = JSON.parse(e.target.result);
-            updateProblemList();
+            updateProblemList(problems);
             alert(`${problems.length}件の問題を読み込みました`);
           } catch (err) {
             alert('ファイルの読み込みに失敗しました: ' + err.message);
@@ -336,13 +342,17 @@ document.addEventListener('click', (e) => {
 }); 
 
 // UI更新関数（既存コードから抽出）
-function updateProblemList() {
+function updateProblemList(problems) {
   const ul = document.querySelector('[role="treeitem"]')?.querySelector('ul');
   if (!ul) return;
   ul.innerHTML = "";
   problems.forEach((problem, index) => {
     const li = document.createElement("li");
-    li.innerHTML = `<button type="button" data-action="view" data-order="${index}">${problem.question}</button>`;
+    li.innerHTML = `<button type="button" data-action="view" data-order="${index}">${problem.question}</button>
+    <button type="button" data-action="update" data-order="${index}">変更</button>
+    <button type="button" data-action="delete" data-order="${index}">削除</button>
+    <span class="drag-handle">☰</span>
+    `
     ul.appendChild(li);
   });
 }
@@ -475,9 +485,9 @@ const repository = new Repository();
       toggleNode.classList.toggle("filter", !checked);
     },
     answerProblem: (evt) =>{
-      const answer = evt.target.returnValue -0 ;
-      const order = document.forms.problem.order.value -0;
-      if(answer == 4){
+      if(evt.target.returnValue == "cancel") return;
+
+      if(evt.target.returnValue == "edit"){
         const order = document.forms.problem.order.value -0;
         const question = document.forms.problem.question.value;
         const answer1 = document.forms.problem.answer1.value;
@@ -490,22 +500,18 @@ const repository = new Repository();
           answers : [answer1, answer2, answer3, answer4],
           correctAnswer : correctAnswer -0,
         };
+        updateProblemList(problems);
 
-        const ul = document.querySelector('[role="treeitem"]').querySelector('ul');
-        ul.innerHTML = "";
-        problems.forEach((problem, index) => {
-          const li = document.createElement("li");
-          li.innerHTML = `<li><button type="button" data-action="view" data-order="${index}">${problem.question}</button>
-          <button type="button" data-action="update" data-order="${index}">変更</button>
-          </li>`;
-          ul.appendChild(li);
-        });
-      }else if(answer == problems[order].correctAnswer) {
-        success.showModal();
-      } else {
-        error.showModal();
+      }else {
+        const answer = evt.target.returnValue -0;
+        const order = document.forms.problem.order.value -0;
+        if(answer == problems[order].correctAnswer) {
+          success.showModal();
+        } else {
+          error.showModal();
+        }
       }
-    }
+    },
   };
 
   /* 

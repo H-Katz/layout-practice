@@ -153,21 +153,26 @@
 
             <dialog id="problemDialog" style="background-color: transparent;" onclose="controller.answerProblem(event)">
               <form name="problem" method="dialog">
-                <input type="hidden" name="order">
-                <h2><input type="text" value="問題" name="question" disabled></h2>
+                <header style="display: flex; justify-content: space-between; align-items: center;">
+                  <input type="hidden" name="order">
+                  <h2>
+                    <input type="text" value="問題" name="question" disabled>
+                  </h2>
+                  <button id="addButton" type="submit" value="edit">追加</button>
+                  <button type="submit" value="cancel">取消</button>
+                </header>
             <!-- path例 追加 -->
                 <svg id="profile" width="400" height="400" style="border:2px solid black;">
                   <circle cx="100" cy="100" r="10" fill="green" stroke-width="3"/>
                   <path id="output" fill="none" stroke="black" stroke-width="2" />
                 </svg>
 
-                <div class="button-grid">
+                <footer class="button-grid">
                   <button class="card-button" type="submit" value="0"><input type="text" value="回答1" name="answer1" disabled><input type="radio" name="correctAnswer" value="0" checked></button>
                   <button class="card-button" type="submit" value="1"><input type="text" value="回答2" name="answer2" disabled><input type="radio" name="correctAnswer" value="1" ></button>
                   <button class="card-button" type="submit" value="2"><input type="text" value="回答3" name="answer3" disabled><input type="radio" name="correctAnswer" value="2" ></button>
                   <button class="card-button" type="submit" value="3"><input type="text" value="回答4" name="answer4" disabled><input type="radio" name="correctAnswer" value="3" ></button>
-                </div>
-                <button id="addButton"type="submit" value="4">追加</button>
+                </footer>
               </form>
             </dialog>   
             <dialog id="success" style="background-color: transparent;" 
