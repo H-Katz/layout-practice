@@ -330,6 +330,9 @@ document.addEventListener('click', (e) => {
       document.querySelectorAll('[name="correctAnswer"]').forEach(btn => 
         btn.setAttribute("style", `display: ${viewStyle};`)
       );
+      document.querySelectorAll('[name="cities"]').forEach(btn =>{
+        btn.setAttribute("style", `display: ${params[action].answerButtonView == "none"? "none": "inline"}`);
+      })
 
       document.forms.$cities.prefecture.value = problem?.problemMap ?? ""
       controller.updateProblemMap(problem?.problemMap);
@@ -742,8 +745,15 @@ cities = {"44000": "大分県",
     const value = evt.target.value;
     // alert(value);
     // 1. 選択した都道府県に含まれる幾何データを取得
-    // if(document.forms.problem.cities.value == "problemMap")
-    document.forms.problem.problemMap.value = value;
+    if(document.forms.problem.cities.value == "problemMap"){
+      document.forms.problem.problemMap.value = value;
+      controller.updateProblemMap(value);
+    }else{
+      const text = document.querySelector('input[name="cities"]:checked ~ button input[type="text"]:first-child');
+      text.value = value;
+    }
+
+    /*
     const geometries = boundaries.features
       .filter((feature) => feature.properties["N03_001"] == value)
       .map((feature) => feature.geometry);
@@ -770,7 +780,7 @@ cities = {"44000": "大分県",
       .join(" ");
     const pathNode = svg.root.querySelector("path");
     pathNode.setAttribute("d", profile);
-
+    */
     // 2. 選択した都道府県の自治体コードたちN03_007の配列を作る
     const features = boundaries.features.filter(
       (feature) => feature.properties["N03_001"] == value
