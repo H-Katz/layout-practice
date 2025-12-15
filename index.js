@@ -248,10 +248,7 @@ var problems = [{
 }]
 
 document.forms.problem.question.value = problems[0].question;
-document.forms.problem.city1.value = problems[0].cities[0];
-document.forms.problem.city2.value = problems[0].cities[1];
-document.forms.problem.city3.value = problems[0].cities[2];
-document.forms.problem.city4.value = problems[0].cities[3];
+document.forms.problem.problemMap.value = problems[0].problemMap;
 document.forms.problem.answer1.value = problems[0].answers[0];
 document.forms.problem.answer2.value = problems[0].answers[1];
 document.forms.problem.answer3.value = problems[0].answers[2];
@@ -303,25 +300,23 @@ document.addEventListener('click', (e) => {
           answerButtonView: "none",
         },
         "add": {
-          order: order,
+          order: order || problems.length,
           submitButtonsStatus: true,
           problemButtonsStatus: false,
           answerButtonView: "block",
         }
       }
-      const orderValue = params[action].order ?? problems.length;
+      const orderValue = params[action].order ;
+      const problem = problems[orderValue];
       document.forms.problem.order.value = orderValue;
 
-      document.forms.problem.question.value = problems[orderValue]?.question ?? "問題";
-      document.forms.problem.city1.value = problems[orderValue]?.cities[0] ?? "大分県";
-      document.forms.problem.city2.value = problems[orderValue]?.cities[1] ?? "";
-      document.forms.problem.city3.value = problems[orderValue]?.cities[2] ?? "";
-      document.forms.problem.city4.value = problems[orderValue]?.cities[3] ?? "";
-      document.forms.problem.answer1.value = problems[orderValue]?.answers[0] ?? "回答1";
-      document.forms.problem.answer2.value = problems[orderValue]?.answers[1] ?? "回答2";
-      document.forms.problem.answer3.value = problems[orderValue]?.answers[2] ?? "回答3";
-      document.forms.problem.answer4.value = problems[orderValue]?.answers[3] ?? "回答4";
-      document.forms.problem.correctAnswer.value = problems[orderValue]?.correctAnswer ?? "0";
+      document.forms.problem.question.value = problem?.question ?? "問題";
+      document.forms.problem.problemMap.value = problem?.problemMap ?? "大分県";
+      document.forms.problem.answer1.value = problem?.answers[0] ?? "回答1";
+      document.forms.problem.answer2.value = problem?.answers[1] ?? "回答2";
+      document.forms.problem.answer3.value = problem?.answers[2] ?? "回答3";
+      document.forms.problem.answer4.value = problem?.answers[3] ?? "回答4";
+      document.forms.problem.correctAnswer.value = problem?.correctAnswer ?? "0";
       const submitButtons = document.forms.problem.querySelectorAll('button.card-button[type="submit"]');
       submitButtons.forEach(btn => btn.disabled = params[action].submitButtonsStatus);
       ["question", "answer1", "answer2", "answer3", "answer4"].forEach(name => {
@@ -336,16 +331,10 @@ document.addEventListener('click', (e) => {
         btn.setAttribute("style", `display: ${viewStyle};`)
       );
 
-      document.forms.$cities.prefecture.value = problems[orderValue]?.cities[0] ?? "大分県"
+      document.forms.$cities.prefecture.value = problem?.problemMap ?? ""
+      controller.updateProblemMap(problem?.problemMap);
+
       document.getElementById('problemDialog').show();
-      break;
-    }
-    case "delete": {
-      if(window.confirm("削除しますか？")) {
-        const order = btn.dataset.order;
-        problems.splice(order, 1);
-        updateProblemList(problems);
-      }
       break;
     }
     case "delete": {
@@ -514,6 +503,30 @@ const repository = new Repository();
       const i = Math.floor(Math.random() * cityOfficeLocations.length);
       controller.updateLocation(i);
     },
+    updateProblemMap: (cityName) =>{
+      if(!cityName) return;    
+        
+        const features = boundaries.features
+          .filter((feature) => feature.properties["N03_001"] == cityName)
+        
+        const polylines = features.map((feature) => {
+          if (feature.geometry.type == "Polygon") {
+            return [feature.geometry.coordinates];
+          } else if (feature.geometry.type == "MultiPolygon") {
+            return feature.geometry.coordinates;
+          }
+        }).flat(2); // 最後にポリライン集合として平坦化する
+    
+        const points = polylines.flat(1); // 一旦、ポリライン集合を点集合に変換し、描画サイズを調整
+        svg.resize(points);
+        const profile = svg.toCanvasCoordFromPolylines(polylines)
+          .map((polyline) => svg.toPath(polyline))
+          .join(" ");
+        const pathNode = svg.root.querySelector("path");
+        pathNode.setAttribute("d", profile);
+    
+        return features;
+    },
     updateLocation: (i) => {
       const cityOffice = cityOfficeLocations[i];
       let lng = cityOffice[9] - 0;
@@ -525,6 +538,8 @@ const repository = new Repository();
       );
       if (city != null) {
         let prefectureName = city.properties["N03_001"];
+        const features = controller.updateProblemMap(prefectureName)
+        /*
         // 1. 選択した自治体を含む都道府県全体の幾何データを取得
         let indexedBoundaries= boundaries.features.group_by((feature) => {
           return feature.properties["N03_001"];
@@ -550,6 +565,7 @@ const repository = new Repository();
           .join(" ");
         const pathNode = svg.root.querySelector("path");
         pathNode.setAttribute("d", profile);
+        */
 
         // feature.properties["N03_007"]が自治体コード
         const groupedCities = cityOfficeLocations.group_by(
@@ -614,12 +630,12 @@ const repository = new Repository();
       toggleNode.classList.toggle("filter", !checked);
     },
     answerProblem: (evt) =>{
-      if(evt.target.returnValue == "cancel") return;
+      if(evt.target.returnValue == null ||evt.target.returnValue == "cancel") return;
 
       if(evt.target.returnValue == "edit"){
         const order = document.forms.problem.order.value -0;
         const question = document.forms.problem.question.value;
-        const cities =  ["city1", "city2", "city3", "city4"].map(city => document.forms.problem[city].value);
+        const problemMap = document.forms.problem.problemMap.value;
         const answer1 = document.forms.problem.answer1.value;
         const answer2 = document.forms.problem.answer2.value;
         const answer3 = document.forms.problem.answer3.value;
@@ -627,7 +643,7 @@ const repository = new Repository();
         const correctAnswer = document.forms.problem.correctAnswer.value;
         problems[order]={
           question,
-          cities,
+          problemMap,
           answers : [answer1, answer2, answer3, answer4],
           correctAnswer : correctAnswer -0,
         };
@@ -726,7 +742,8 @@ cities = {"44000": "大分県",
     const value = evt.target.value;
     // alert(value);
     // 1. 選択した都道府県に含まれる幾何データを取得
-    document.forms.problem.city1.value = value;
+    // if(document.forms.problem.cities.value == "problemMap")
+    document.forms.problem.problemMap.value = value;
     const geometries = boundaries.features
       .filter((feature) => feature.properties["N03_001"] == value)
       .map((feature) => feature.geometry);
