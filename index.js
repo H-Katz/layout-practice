@@ -10,6 +10,17 @@ Array.prototype.group_by = function (f) {
   }, {});
 };
 
+Array.prototype.slot = function(b, mapper=(x)=>x){
+  let j = 0;
+  return this.map((q_i, i)=>{
+      while (j < b.length && b[j] <= this[i])
+          j += 1;
+      if (j == 0) 
+          return mapper(undefined);
+      return mapper(j - 1);
+  })
+}
+
 class SVGCanvas {
   constructor(id) {
     this.id = id;
@@ -494,6 +505,18 @@ const repository = new Repository();
   }));
   repository.mount("/boundaries", new HttpDriver("./data/N03-21_210101.json"));
   // await repository.loadData();
+  let areaList = {
+    "北海道地域" : ["北海道"],
+    "東北地域": ["青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",],
+    "関東地域": ["茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県"],
+    "北陸地域": ["新潟県", "富山県", "石川県", "福井県", "山梨県", "長野県"],
+    "中部地域": ["岐阜県", "静岡県", "愛知県", "三重県"],
+    "近畿地域": ["滋賀県", "京都府", "大阪府", "兵庫県", "奈良県", "和歌山県"],
+    "中国地域": ["鳥取県", "島根県", "岡山県", "広島県", "山口県"],
+    "四国地域": ["徳島県", "香川県", "愛媛県", "高知県"],
+    "九州地域": ["福岡県", "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県"],
+    "沖縄地域": ["沖縄県"]
+  }
 
   let cityOfficeLocations = await repository.read("/cityOfficeLocations");
   let boundaries = await repository.read("/boundaries");
@@ -508,9 +531,16 @@ const repository = new Repository();
     },
     updateProblemMap: (cityName) =>{
       if(!cityName) return;    
-        
+        const prefectureNames = areaList[cityName];
+        const areaPrefectures = prefectureNames?.group_by((prefName)=>prefName);
+      
         const features = boundaries.features
-          .filter((feature) => feature.properties["N03_001"] == cityName)
+          .filter((feature) => {
+            if(prefectureNames){
+              return areaPrefectures[feature.properties["N03_001"]] != null
+            }else
+              return feature.properties["N03_001"] == cityName
+          })
         
         const polylines = features.map((feature) => {
           if (feature.geometry.type == "Polygon") {
@@ -661,6 +691,20 @@ const repository = new Repository();
           error.showModal();
         }
       }
+    },
+    changeLocalarea: (evt) =>{
+      const areaName = document.forms.$cities.area.value;
+      const areaPrefectures = areaList[areaName].group_by((prefName)=>prefName);
+      const prefectures = document.forms.$cities.querySelectorAll('[name="prefecture"] option');
+      prefectures.forEach((pref)=>{
+        const displayStyle = areaPrefectures[pref.textContent] ? "inline": "none"
+        pref.setAttribute("style", `display: ${displayStyle}`)
+      })
+      document.forms.$cities.prefecture.value = "";
+
+      document.forms.problem.problemMap.value = areaName;
+      const feaures = controller.updateProblemMap(areaName);
+
     },
   };
 
